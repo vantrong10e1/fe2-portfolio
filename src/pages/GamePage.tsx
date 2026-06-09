@@ -10,29 +10,17 @@ import type Phaser from 'phaser';
 import EventBus from '../game/EventBus';
 import { GameEvent } from '../types/game.types';
 import { SettingsOverlay } from '../components/ui/SettingsOverlay';
-import { TutorialPopup } from '../components/ui/TutorialPopup';
+// import { TutorialPopup } from '../components/ui/TutorialPopup'; // Tutorial removed
 import { AudioManager } from '../game/managers/AudioManager';
 
 export function GamePage() {
   const navigate = useNavigate();
   const gameRef = useRef<Phaser.Game | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
 
   const handleGameReady = useCallback((game: Phaser.Game) => {
     gameRef.current = game;
-
-    // Trigger tutorial guide if starting a new game
-    const isNew = localStorage.getItem('shadow_blade_load_mode') === 'new';
-    const shown = localStorage.getItem('shadow_blade_tutorial_shown') === 'true';
-    if (isNew && !shown) {
-      setShowTutorial(true);
-      EventBus.emit('tutorial-active', true);
-      // Brief delay to allow scenes to setup before pausing
-      setTimeout(() => {
-        EventBus.emit(GameEvent.GAME_PAUSED);
-      }, 200);
-    }
+    // Tutorial removed
   }, []);
 
   const handleCloseTutorial = () => {
@@ -89,10 +77,7 @@ export function GamePage() {
         />
       )}
 
-      {/* First Time Tutorial Popup */}
-      {showTutorial && (
-        <TutorialPopup onClose={handleCloseTutorial} />
-      )}
+      {/* Tutorial removed */}
     </div>
   );
 }

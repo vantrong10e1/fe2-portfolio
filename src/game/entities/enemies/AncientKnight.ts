@@ -198,6 +198,16 @@ export class AncientKnight extends Enemy {
       
       const minion = new Goblin(this.scene, sx, groundY);
       minion.playerRef = this.playerRef;
+      minion.spawnPointId = 'spawn-boss-minions';
+
+      // Make interactive for target frame selection
+      minion.setInteractive({ useHandCursor: true });
+      minion.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        if (pointer.rightButtonDown()) {
+          const EventBus = require('../../EventBus').default;
+          EventBus.emit('enemy-selected', minion);
+        }
+      });
 
       // Add to physics group and configure collider
       if (group) {

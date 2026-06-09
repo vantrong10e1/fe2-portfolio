@@ -34,45 +34,52 @@ export class EffectsSystem {
     g.setPosition(cx, cy);
     g.setRotation(angle);
 
-    const radius = playerLevel >= 5 ? 80 : 55;
-    const startAngle = -60;
-    const endAngle = 60;
+    const radius = playerLevel >= 5 ? 100 : 70;
+    const startAngle = -80;
+    const endAngle = 80;
 
-    // Draw initial slash
-    g.lineStyle(2, 0xffffff, 0.9);
+    // Draw initial slash arc - BRIGHTER
+    g.lineStyle(3, 0xffffff, 1.0);
     g.beginPath();
     g.arc(0, 0, radius, Phaser.Math.DegToRad(startAngle), Phaser.Math.DegToRad(endAngle), false);
     g.strokePath();
 
-    // Inner glow
-    g.lineStyle(3, 0x88ccff, 0.5);
+    // Inner bright glow - LARGER
+    g.lineStyle(4, 0x88ddff, 0.8);
     g.beginPath();
-    g.arc(0, 0, radius - 2, Phaser.Math.DegToRad(startAngle), Phaser.Math.DegToRad(endAngle), false);
+    g.arc(0, 0, radius - 3, Phaser.Math.DegToRad(startAngle), Phaser.Math.DegToRad(endAngle), false);
+    g.strokePath();
+
+    // Second layer for depth
+    g.lineStyle(2, 0x44ccff, 0.6);
+    g.beginPath();
+    g.arc(0, 0, radius - 8, Phaser.Math.DegToRad(startAngle), Phaser.Math.DegToRad(endAngle), false);
     g.strokePath();
 
     this.scene.tweens.add({
       targets: g,
       alpha: 0,
-      scaleX: 1.3,
-      scaleY: 1.15,
-      duration: 200,
-      ease: 'Power2',
+      scaleX: 1.5,
+      scaleY: 1.3,
+      duration: 250,
+      ease: 'Quad.easeOut',
       onComplete: () => g.destroy(),
     });
 
-    // Spark particles
-    for (let i = 0; i < 5; i++) {
+    // Spark particles - MORE AND BRIGHTER
+    for (let i = 0; i < 12; i++) {
       const sparkAngle = angle + Phaser.Math.DegToRad(Phaser.Math.Between(startAngle, endAngle));
-      const px = cx + Math.cos(sparkAngle) * radius;
-      const py = cy + Math.sin(sparkAngle) * radius;
-      const spark = this.scene.add.circle(px, py, Phaser.Math.Between(1, 2), 0xffffff, 0.9).setDepth(51);
+      const px = cx + Math.cos(sparkAngle) * (radius + 10);
+      const py = cy + Math.sin(sparkAngle) * (radius + 10);
+      const sparkColor = Phaser.Math.RND.pick([0xffffff, 0x88ddff, 0xaaeeee]);
+      const spark = this.scene.add.circle(px, py, Phaser.Math.Between(2, 4), sparkColor, 1.0).setDepth(51);
       this.scene.tweens.add({
         targets: spark,
-        x: px + Phaser.Math.Between(-10, 10) * Math.cos(angle),
-        y: py + Phaser.Math.Between(-8, 8) * Math.sin(angle),
+        x: px + Phaser.Math.Between(-25, 25) * Math.cos(angle),
+        y: py + Phaser.Math.Between(-20, 20) * Math.sin(angle),
         alpha: 0,
-        scale: 0.2,
-        duration: Phaser.Math.Between(150, 300),
+        scale: 0.1,
+        duration: Phaser.Math.Between(200, 400),
         ease: 'Cubic.easeOut',
         onComplete: () => spark.destroy(),
       });

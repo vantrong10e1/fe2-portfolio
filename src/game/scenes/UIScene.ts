@@ -186,6 +186,7 @@ export class UIScene extends Phaser.Scene {
   private isReloading: boolean = false;
   private gamePaused: boolean = false;
   private totalScore: number = 0;
+  private bossDefeated: boolean = false;
   private killsByType: Map<string, number> = new Map();
   private tabOpen: boolean = false;
 
@@ -208,6 +209,7 @@ export class UIScene extends Phaser.Scene {
     this.expToNext = 50;
     this.killCount = 0;
     this.totalScore = 0;
+    this.bossDefeated = false;
     this.killsByType = new Map();
     this.tabOpen = false;
     this.isReloading = false;
@@ -358,6 +360,7 @@ export class UIScene extends Phaser.Scene {
     EventBus.on('open-settings', this.onOpenSettings, this);
     EventBus.on('close-settings', this.onCloseSettings, this);
     EventBus.on('tutorial-active', this.onTutorialActive, this);
+    EventBus.on('boss-slain', this.onBossSlain, this);
 
     // Create Achievements Panel
     this.createAchievementsPanel(camW, camH);
@@ -403,6 +406,7 @@ export class UIScene extends Phaser.Scene {
       EventBus.off('open-settings', this.onOpenSettings, this);
       EventBus.off('close-settings', this.onCloseSettings, this);
       EventBus.off('tutorial-active', this.onTutorialActive, this);
+      EventBus.off('boss-slain', this.onBossSlain, this);
     });
   }
 
@@ -2091,8 +2095,8 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createGameOverPanel(camW: number, camH: number): void {
-    const panelW = 280;
-    const panelH = 200;
+    const panelW = 340;
+    const panelH = 320;
     const px = (camW - panelW) / 2;
     const py = (camH - panelH) / 2;
 
@@ -2108,58 +2112,118 @@ export class UIScene extends Phaser.Scene {
     panel.lineStyle(2, 0xe74c3c, 0.5);
     panel.strokeRoundedRect(px, py, panelW, panelH, 10);
 
-    const title = this.add.text(camW / 2, py + 30, 'BẠN ĐÃ TỬ TRẬN', {
-      fontSize: '22px', color: '#e74c3c', fontStyle: 'bold',
-      fontFamily: 'Cinzel, serif',
-      stroke: '#000000', strokeThickness: 2,
+    const title = this.add.text(camW / 2, py + 25, 'BẠN ĐÃ TỬ TRẬN', {
+      fontSize: '18px', color: '#e74c3c', fontStyle: 'bold',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5);
+
+    const namePromptText = this.add.text(camW / 2, py + 60, 'NHẬP TÊN CỦA BẠN:', {
+      fontSize: '12px', color: '#4fc3f7', fontStyle: 'bold',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+      stroke: '#000000', strokeThickness: 1,
+    }).setOrigin(0.5);
+
+    // Name input background
+    const inputBg = this.add.graphics();
+    inputBg.fillStyle(0x1a1a2e, 0.9);
+    inputBg.fillRect(px + 20, py + 85, panelW - 40, 35);
+    inputBg.lineStyle(2, 0x4fc3f7, 0.8);
+    inputBg.strokeRect(px + 20, py + 85, panelW - 40, 35);
+
+    const inputText = this.add.text(px + 30, py + 102, '', {
+      fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+    }).setOrigin(0, 0.5);
+
+    const defaultName = LeaderboardHelper.getLastName();
+    inputText.setText(defaultName);
+    let isEditing = true;
+
+    // Cursor indicator
+    const cursorText = this.add.text(px + 30 + inputText.width + 4, py + 102, '▌', {
+      fontSize: '14px', color: '#4fc3f7',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+    }).setOrigin(0, 0.5);
+
+    // Blinking cursor animation
+    this.tweens.add({
+      targets: cursorText,
+      alpha: 0.3,
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    // Instruction text
+    const instructionText = this.add.text(camW / 2, py + 140, 'NHẤN ENTER ĐỂ XÁC NHẬN', {
+      fontSize: '10px', color: '#888888', fontStyle: 'bold',
+      fontFamily: 'Press Start 2P, VT323, monospace',
     }).setOrigin(0.5);
 
     const btnStyle = {
-      fontSize: '15px', color: '#cccccc', fontStyle: 'bold',
-      backgroundColor: '#2a0a0a', padding: { x: 10, y: 8 },
-      fixedWidth: 160, align: 'center',
+      fontSize: '13px', color: '#cccccc', fontStyle: 'bold',
+      backgroundColor: '#2a0a0a', padding: { x: 12, y: 8 },
+      fixedWidth: 140, align: 'center',
+      fontFamily: 'Press Start 2P, VT323, monospace',
     };
 
-    const btnRestart = this.add.text(camW / 2, py + 90, 'Chơi lại', btnStyle)
+    const btnConfirm = this.add.text(camW / 2, py + 200, 'XÁC NHẬN', btnStyle)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => btnRestart.setColor('#ffffff').setStyle({ backgroundColor: '#e74c3c' }))
-      .on('pointerout', () => btnRestart.setColor('#cccccc').setStyle({ backgroundColor: '#2a0a0a' }))
+      .on('pointerover', () => btnConfirm.setColor('#ffffff').setStyle({ backgroundColor: '#4fc3f7' }))
+      .on('pointerout', () => btnConfirm.setColor('#cccccc').setStyle({ backgroundColor: '#2a0a0a' }))
       .on('pointerdown', () => {
         AudioManager.getInstance().playSFX('ui-click');
+        isEditing = false;
+        const playerName = inputText.text.trim() || defaultName;
+        LeaderboardHelper.saveEntry(playerName, this.playerLevel, this.totalScore, this.killCount);
         this.gameOverContainer.setVisible(false);
-        this.scene.stop(SceneKey.UI);
-        this.scene.stop(SceneKey.GAME);
-        this.scene.start(SceneKey.GAME);
+        
+        // If boss is defeated, continue playing; otherwise, exit to menu
+        if (!this.bossDefeated) {
+          // Exit to main menu
+          this.exitToMenu();
+        }
       });
 
-    const btnExit = this.add.text(camW / 2, py + 145, 'Thoát', {
-      ...btnStyle, color: '#ff6666',
-    })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => btnExit.setColor('#ffffff').setStyle({ backgroundColor: '#ff3333' }))
-      .on('pointerout', () => btnExit.setColor('#ff6666').setStyle({ backgroundColor: '#2a0a0a' }))
-      .on('pointerdown', () => {
-        AudioManager.getInstance().playSFX('ui-click');
+    // Keyboard input handling
+    this.input.keyboard!.on('keydown', (event: KeyboardEvent) => {
+      if (!isEditing) return;
+      
+      if (event.key === 'Enter') {
+        isEditing = false;
+        const playerName = inputText.text.trim() || defaultName;
+        LeaderboardHelper.saveEntry(playerName, this.playerLevel, this.totalScore, this.killCount);
         this.gameOverContainer.setVisible(false);
-        this.exitToMenu();
-      });
 
-    this.gameOverContainer.add([overlay, panel, title, btnRestart, btnExit]);
+        // If boss is defeated, continue playing; otherwise, exit to menu
+        if (!this.bossDefeated) {
+          // Exit to main menu
+          this.exitToMenu();
+        }
+      } else if (event.key === 'Backspace') {
+        inputText.setText(inputText.text.slice(0, -1));
+        cursorText.x = px + 30 + inputText.width + 4;
+      } else if (event.key.length === 1 && inputText.text.length < 20) {
+        inputText.setText(inputText.text + event.key);
+        cursorText.x = px + 30 + inputText.width + 4;
+      }
+    });
+
+    this.gameOverContainer.add([overlay, panel, title, namePromptText, inputBg, inputText, cursorText, instructionText, btnConfirm]);
   }
 
   private onPlayerDied(): void {
     if (!this.sys.isActive()) return;
 
-    // Save to Leaderboard
-    const defaultName = LeaderboardHelper.getLastName();
-    const name = window.prompt("BẠN ĐÃ TỬ TRẬN!\nHãy nhập tên của bạn để lưu vào Bảng Xếp Hạng:", defaultName);
-    if (name !== null) {
-      LeaderboardHelper.saveEntry(name, this.playerLevel, this.totalScore, this.killCount);
-    }
-
+    // Show pixel-art styled game over panel with name input
     this.gameOverContainer.setVisible(true);
+  }
+
+  private onBossSlain(): void {
+    if (!this.sys.isActive()) return;
+    this.bossDefeated = true;
   }
 
   private onEnemySelected(enemy: Enemy | null): void {
