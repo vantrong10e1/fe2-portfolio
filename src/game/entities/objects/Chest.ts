@@ -52,7 +52,7 @@ export class Chest extends Phaser.GameObjects.Rectangle {
   private config: ChestConfig;
 
   /** Visual elements */
-  private chestIcon!: Phaser.GameObjects.Text;
+  private chestSprite!: Phaser.GameObjects.Sprite;
   private promptText!: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene, config: ChestConfig) {
@@ -72,10 +72,16 @@ export class Chest extends Phaser.GameObjects.Rectangle {
     const body = this.body as Phaser.Physics.Arcade.StaticBody;
     body.setSize(28, 24);
 
-    // Chest icon (emoji above the box)
-    this.chestIcon = scene.add.text(config.x, config.y - 20, '📦', {
-      fontSize: '18px',
-    }).setOrigin(0.5).setDepth(6);
+    // Chest sprite using pixel art texture
+    if (scene.textures.exists('chest')) {
+      this.chestSprite = scene.add.sprite(config.x, config.y - 4, 'chest');
+      this.chestSprite.setDepth(6);
+    } else {
+      // Fallback: create a simple sprite from the rectangle itself
+      this.chestSprite = scene.add.sprite(config.x, config.y - 4, 'player');
+      this.chestSprite.setDepth(6);
+      this.chestSprite.setTint(0x8b4513);
+    }
 
     // Interaction prompt (hidden by default)
     this.promptText = scene.add.text(config.x, config.y - 40, '[G] Mở', {
@@ -85,7 +91,7 @@ export class Chest extends Phaser.GameObjects.Rectangle {
 
     // Glow effect (pulsing alpha)
     scene.tweens.add({
-      targets: this.chestIcon,
+      targets: this.chestSprite,
       alpha: { from: 0.7, to: 1 },
       duration: 800,
       yoyo: true,
@@ -132,18 +138,18 @@ export class Chest extends Phaser.GameObjects.Rectangle {
 
     // Visual: change to opened state
     this.setFillStyle(0x5c3a1e, 0.6);
-    this.chestIcon.setText('📭');
+    this.chestSprite.setTint(0x666666);
+    this.chestSprite.setAlpha(0.5);
     this.promptText.setVisible(false);
 
     // Stop pulsing
-    this.scene.tweens.killTweensOf(this.chestIcon);
-    this.chestIcon.setAlpha(0.5);
+    this.scene.tweens.killTweensOf(this.chestSprite);
 
     this.state = ChestState.OPENED;
 
     // Fade out and float up, then destroy
     this.scene.tweens.add({
-      targets: [this, this.chestIcon],
+      targets: [this, this.chestSprite],
       alpha: 0,
       y: '-=15',
       duration: 600,
@@ -168,15 +174,15 @@ export class Chest extends Phaser.GameObjects.Rectangle {
   forceOpen(): void {
     this.state = ChestState.OPENED;
     this.setFillStyle(0x5c3a1e, 0.6);
-    this.chestIcon.setText('📭');
+    this.chestSprite.setTint(0x666666);
     this.promptText.setVisible(false);
-    this.scene.tweens.killTweensOf(this.chestIcon);
-    this.chestIcon.setAlpha(0.5);
+    this.scene.tweens.killTweensOf(this.chestSprite);
+    this.chestSprite.setAlpha(0.5);
   }
 
   /** Cleanup */
   destroyChest(): void {
-    this.chestIcon.destroy();
+    this.chestSprite.destroy();
     this.promptText.destroy();
     this.destroy();
   }

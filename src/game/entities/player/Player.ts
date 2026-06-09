@@ -87,6 +87,7 @@ export class Player extends Character {
   // Double stats buff state
   private originalStatsBeforeBuff: { attack: number; defense: number; moveSpeed: number } | null = null;
   private buffTimerEvent: Phaser.Time.TimerEvent | null = null;
+  private auraGraphics: Phaser.GameObjects.Graphics | null = null;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     const stats: CharacterStats = { ...PLAYER_INITIAL_STATS };
@@ -177,7 +178,12 @@ export class Player extends Character {
 
   preUpdate(time: number, delta: number): void {
     super.preUpdate(time, delta);
-    if (this.isDead) return;
+    if (this.isDead) {
+      if (this.auraGraphics) {
+        this.auraGraphics.clear();
+      }
+      return;
+    }
 
     // Handle grievous wounds timer ticks
     if (this.grievousWoundsTimer > 0) {
@@ -230,6 +236,41 @@ export class Player extends Character {
           onComplete: () => spark.destroy(),
         });
       }
+
+      // Draw glowing pale yellow semi-circle dome aura of radius 100px
+      if (!this.auraGraphics && this.scene) {
+        this.auraGraphics = this.scene.add.graphics();
+        this.auraGraphics.setDepth(this.depth - 1);
+      }
+
+      if (this.auraGraphics) {
+        this.auraGraphics.clear();
+        this.auraGraphics.setPosition(this.x, this.y);
+
+        const pulse = 0.25 + Math.sin(time * 0.005) * 0.1; // Pulsing alpha
+
+        // Inner thin glow
+        this.auraGraphics.lineStyle(1, 0xfff59d, pulse * 0.4);
+        this.auraGraphics.beginPath();
+        this.auraGraphics.arc(0, 0, 96, Math.PI, 0, false);
+        this.auraGraphics.strokePath();
+
+        // Main line
+        this.auraGraphics.lineStyle(2, 0xfff59d, pulse);
+        this.auraGraphics.beginPath();
+        this.auraGraphics.arc(0, 0, 100, Math.PI, 0, false);
+        this.auraGraphics.strokePath();
+
+        // Outer thin glow
+        this.auraGraphics.lineStyle(1, 0xfff59d, pulse * 0.2);
+        this.auraGraphics.beginPath();
+        this.auraGraphics.arc(0, 0, 104, Math.PI, 0, false);
+        this.auraGraphics.strokePath();
+      }
+    } else {
+      if (this.auraGraphics) {
+        this.auraGraphics.clear();
+      }
     }
   }
 
@@ -242,6 +283,9 @@ export class Player extends Character {
   }
 
   protected onDeath(): void {
+    if (this.auraGraphics) {
+      this.auraGraphics.clear();
+    }
     const sm = this.stateMachine as unknown as StateMachine<Player>;
     sm.setState(EntityState.DEATH);
     EventBus.emit(GameEvent.PLAYER_DIED);
@@ -503,6 +547,7 @@ export class Player extends Character {
         if (gameScene.inventorySystem) {
           gameScene.inventorySystem.setEquippedWeapon('iron_sword');
         }
+        this.refreshWeaponAnim();
       }
     }
     if (input.weapon2) {
@@ -512,6 +557,7 @@ export class Player extends Character {
         if (gameScene.inventorySystem) {
           gameScene.inventorySystem.setEquippedWeapon('flintlock_pistol');
         }
+        this.refreshWeaponAnim();
       }
     }
     if (input.reload) this.weaponSystem.startReload(this.scene);
@@ -526,9 +572,33 @@ export class Player extends Character {
     }
   }
 
+  /** Re-play the current state animation with the correct weapon variant */
+  private refreshWeaponAnim(): void {
+    const stateMachine = this.stateMachine as unknown as StateMachine<Player>;
+    const currentState = stateMachine.currentStateName;
+    const isGun = this.weaponSystem.isRanged();
+
+    const animMap: Record<string, string> = {
+      [EntityState.IDLE]:   isGun ? 'player-gun-idle' : 'player-idle',
+      [EntityState.RUN]:    isGun ? 'player-gun-run'  : 'player-run',
+      [EntityState.JUMP]:   isGun ? 'player-gun-jump' : 'player-jump',
+      [EntityState.FALL]:   isGun ? 'player-gun-fall' : 'player-fall',
+      [EntityState.DASH]:   isGun ? 'player-gun-dash' : 'player-dash',
+    };
+
+    const animKey = animMap[currentState];
+    if (animKey) {
+      this.playAnim(animKey, true);
+    }
+  }
+
   // ── Cleanup ────────────────────────────────────────────────────────
 
   destroy(fromScene?: boolean): void {
+    if (this.auraGraphics) {
+      this.auraGraphics.destroy();
+      this.auraGraphics = null;
+    }
     EventBus.off(GameEvent.ENEMY_KILLED, this.onEnemyKilled, this);
     EventBus.off(GameEvent.INVENTORY_TOGGLE, this.onInventoryToggle, this);
     if (this.controller) {
@@ -577,7 +647,8 @@ class IdleState implements IState<Player> {
 
   enter(p: Player): void {
     p.setVelocityX(0);
-    p.playAnim('player-idle', true);
+    const animKey = p.weaponSystem.isMelee() ? 'player-idle' : 'player-gun-idle';
+    p.playAnim(animKey, true);
   }
 
   update(p: Player, _dt: number): void {
@@ -610,7 +681,10 @@ class IdleState implements IState<Player> {
 class RunState implements IState<Player> {
   readonly name = EntityState.RUN;
 
-  enter(p: Player): void { p.playAnim('player-run', true); }
+  enter(p: Player): void {
+    const animKey = p.weaponSystem.isMelee() ? 'player-run' : 'player-gun-run';
+    p.playAnim(animKey, true);
+  }
 
   update(p: Player, _dt: number): void {
     const input = p.controller.getInput();
@@ -652,7 +726,8 @@ class JumpState implements IState<Player> {
 
   enter(p: Player): void {
     p.setVelocityY(p.stats.jumpForce);
-    p.playAnim('player-jump', true);
+    const animKey = p.weaponSystem.isMelee() ? 'player-jump' : 'player-gun-jump';
+    p.playAnim(animKey, true);
   }
 
   update(p: Player, _dt: number): void {
@@ -691,7 +766,10 @@ class JumpState implements IState<Player> {
 class FallState implements IState<Player> {
   readonly name = EntityState.FALL;
 
-  enter(p: Player): void { p.playAnim('player-fall', true); }
+  enter(p: Player): void {
+    const animKey = p.weaponSystem.isMelee() ? 'player-fall' : 'player-gun-fall';
+    p.playAnim(animKey, true);
+  }
 
   update(p: Player, _dt: number): void {
     const input = p.controller.getInput();
@@ -762,7 +840,7 @@ class AttackState implements IState<Player> {
       // Ranged: fire bullet (handled by GameScene via event)
       if (p.weaponSystem.consumeAmmo()) {
         AudioManager.getInstance().playSFX('gun-shot');
-        p.playAnim('player-attack', true);
+        p.playAnim('player-gun-shoot', true);
         // GameScene reads this flag to spawn bullet
         (p as unknown as { _firedBullet: boolean })._firedBullet = true;
       }
@@ -840,7 +918,8 @@ class DashState implements IState<Player> {
     const dir = p.facing === ('left' as string) ? -1 : 1;
     p.setVelocityX(PLAYER_DASH_SPEED * dir);
     p.setVelocityY(0);
-    p.playAnim('player-dash', true);
+    const animKey = p.weaponSystem.isMelee() ? 'player-dash' : 'player-gun-dash';
+    p.playAnim(animKey, true);
     AudioManager.getInstance().playSFX('dash');
 
     if (p.level >= 9) {

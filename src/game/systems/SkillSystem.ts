@@ -69,7 +69,14 @@ export class SkillSystem {
     if (!skill) return false;
     if (currentMp < skill.mpCost) return false;
     const lastUsed = this.cooldownTimers.get(skillId) ?? 0;
-    const cd = playerLevel >= 10 ? skill.cooldown * 0.6 : skill.cooldown;
+    let cd = skill.cooldown;
+    if (playerLevel >= 10) {
+      if (skillId === 'ultimate') {
+        cd = 30000;
+      } else {
+        cd = skill.cooldown * 0.6;
+      }
+    }
     return now - lastUsed >= cd;
   }
 
@@ -87,7 +94,14 @@ export class SkillSystem {
     const skill = SKILLS[skillId];
     if (!skill) return 0;
     const lastUsed = this.cooldownTimers.get(skillId) ?? 0;
-    const cd = playerLevel >= 10 ? skill.cooldown * 0.6 : skill.cooldown;
+    let cd = skill.cooldown;
+    if (playerLevel >= 10) {
+      if (skillId === 'ultimate') {
+        cd = 30000;
+      } else {
+        cd = skill.cooldown * 0.6;
+      }
+    }
     const remaining = cd - (now - lastUsed);
     return Math.max(0, remaining);
   }
@@ -97,7 +111,14 @@ export class SkillSystem {
     const skill = SKILLS[skillId];
     if (!skill) return 1;
     const remaining = this.getRemainingCooldown(skillId, now, playerLevel);
-    const cd = playerLevel >= 10 ? skill.cooldown * 0.6 : skill.cooldown;
+    let cd = skill.cooldown;
+    if (playerLevel >= 10) {
+      if (skillId === 'ultimate') {
+        cd = 30000;
+      } else {
+        cd = skill.cooldown * 0.6;
+      }
+    }
     if (cd === 0) return 1;
     return 1 - remaining / cd;
   }
@@ -124,10 +145,17 @@ export class SkillSystem {
     enemies: Phaser.Physics.Arcade.Sprite[],
   ): void {
     const player = (scene as any).player;
+    const isLevel10 = player && player.level >= 10;
     const isLevel9 = player && player.level >= 9;
-    const radius = isLevel9 ? 300 : SKILL_SLOW_RADIUS;
-    const slowFactor = isLevel9 ? 0.1 : SKILL_SLOW_FACTOR; // 0.1 means speed is 10% (slowed by 90%)
-    const duration = isLevel9 ? 5000 : SKILL_SLOW_DURATION;
+    const radius = isLevel10 ? 400 : (isLevel9 ? 300 : SKILL_SLOW_RADIUS);
+    const slowFactor = isLevel10 ? 0.1 : (isLevel9 ? 0.1 : SKILL_SLOW_FACTOR); // 0.1 means speed is 10% (slowed by 90%)
+    const duration = isLevel10 ? 5000 : (isLevel9 ? 5000 : SKILL_SLOW_DURATION);
+
+    // Register active slow field
+    const activeField = { x, y, radius, level: player ? player.level : 1 };
+    if ((scene as any).activeSlowFields) {
+      (scene as any).activeSlowFields.push(activeField);
+    }
 
     // Visual: expanding circle
     const circle = scene.add.circle(x, y, radius, 0x00bfff, 0.2);
@@ -143,21 +171,29 @@ export class SkillSystem {
       if (!enemy.active) continue;
       const dist = Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y);
       if (dist <= radius) {
-        const origSpeed = (enemy as unknown as { stats: { moveSpeed: number } }).stats.moveSpeed;
-        (enemy as unknown as { stats: { moveSpeed: number } }).stats.moveSpeed = origSpeed * slowFactor;
-
-        // Tint blue
-        enemy.setTint(0x6699ff);
+        const e = enemy as any;
+        e.skillSlowActive = true;
+        e.skillSlowFactor = slowFactor;
 
         // Restore after duration
         scene.time.delayedCall(duration, () => {
           if (enemy.active) {
-            (enemy as unknown as { stats: { moveSpeed: number } }).stats.moveSpeed = origSpeed;
-            enemy.clearTint();
+            e.skillSlowActive = false;
+            e.skillSlowFactor = 1.0;
           }
         });
       }
     }
+
+    // Clean up active field after duration
+    scene.time.delayedCall(duration, () => {
+      if ((scene as any).activeSlowFields) {
+        const idx = (scene as any).activeSlowFields.indexOf(activeField);
+        if (idx !== -1) {
+          (scene as any).activeSlowFields.splice(idx, 1);
+        }
+      }
+    });
 
     // Level 9+: Heal player 20 HP and 20 MP per second inside slow field (duration is 5s, so 5 ticks)
     if (isLevel9 && player) {
@@ -198,8 +234,9 @@ export class SkillSystem {
   ): Phaser.Physics.Arcade.Sprite[] {
     const hit: Phaser.Physics.Arcade.Sprite[] = [];
     const player = (scene as any).player;
+    const isLevel10 = player && player.level >= 10;
     const isLevel9 = player && player.level >= 9;
-    const radius = isLevel9 ? 400 : SKILL_ULTIMATE_RADIUS;
+    const radius = isLevel10 ? 400 : (isLevel9 ? 400 : SKILL_ULTIMATE_RADIUS);
 
     // Visual: expanding shockwave
     const ring = scene.add.circle(x, y, 10, 0x9900ff, 0.5).setDepth(10);

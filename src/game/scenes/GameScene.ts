@@ -78,6 +78,7 @@ export class GameScene extends Phaser.Scene {
   private killCount: number = 0;
   private bossDefeated: boolean = false;
   public loadedAchievements: string[] = [];
+  public activeSlowFields: { x: number; y: number; radius: number; level: number }[] = [];
 
   constructor() {
     super({ key: SceneKey.GAME });
@@ -317,6 +318,13 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    const p = this.player as any;
+    const angle = p._attackAngle !== undefined ? p._attackAngle : (this.player.facing === 'right' ? 0 : Math.PI);
+    const radius = this.player.level >= 5 ? 80 : 55;
+    const hitRange = radius + 24; // Include quái body radius margin
+    const cx = this.player.x + 10 * Math.cos(angle);
+    const cy = this.player.y + 10 * Math.sin(angle);
+
     const enemies = this.spawnSystem.getAliveEnemies();
     let lightningTriggered = false;
     let mpRestored = false;
@@ -327,7 +335,18 @@ export class GameScene extends Phaser.Scene {
       const eid = this.getEnemyId(enemy);
       if (this.attackProcessed.has(eid)) continue;
 
-      if (this.physics.overlap(hitbox, enemy)) {
+      const dist = Phaser.Math.Distance.Between(cx, cy, enemy.x, enemy.y);
+      const enemyAngle = Phaser.Math.Angle.Between(cx, cy, enemy.x, enemy.y);
+      const diff = Phaser.Math.Angle.ShortestBetween(angle, enemyAngle);
+      
+      const body = enemy.body as Phaser.Physics.Arcade.Body;
+      const enemySize = Math.max(body.width, body.height) / 2;
+      const effectiveDist = dist - enemySize;
+      const maxSlashRadius = radius * 1.3;
+      
+      const inSlashRange = effectiveDist <= maxSlashRadius && Math.abs(diff) <= Phaser.Math.DegToRad(75);
+
+      if (inSlashRange) {
         this.attackProcessed.add(eid);
 
         const weapon = this.player.getWeaponSystem();
@@ -723,7 +742,11 @@ export class GameScene extends Phaser.Scene {
         let damage = baseDamage;
         let isCrit = false;
 
-        if (this.player.level >= 9) {
+        const isLarge = e.config.category === 'elite' || e.config.category === 'boss';
+
+        if (this.player.level >= 10 && isLarge) {
+          damage = e.currentHp * 0.1;
+        } else if (this.player.level >= 9) {
           damage = baseDamage * 1.3; // +30% damage
 
           // Crit chance: 60% base, 100% if enemy HP < 20%

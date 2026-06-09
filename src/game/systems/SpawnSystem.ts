@@ -119,6 +119,8 @@ export class SpawnSystem {
 
   /** Per-frame update: process respawn timers */
   update(time: number, _delta: number): void {
+    if ((this.scene as any).bossIntroActive) return;
+
     for (const tracker of this.trackers.values()) {
       if (!tracker.config.isActive) continue;
 

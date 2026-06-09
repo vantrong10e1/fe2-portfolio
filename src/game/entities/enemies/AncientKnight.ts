@@ -74,6 +74,7 @@ export class AncientKnight extends Enemy {
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'player', BOSS_CONFIG);
+    this.isBoss = true;
 
     // Override physics size for boss (larger)
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -361,6 +362,25 @@ class BossIntroState implements IState<AncientKnight> {
     b.playAnim('player-idle', true);
     b.setTint(0xff8888);
 
+    // Pause physics world and freeze other updates
+    b.scene.physics.world.pause();
+    const gameScene = b.scene as any;
+    gameScene.bossIntroActive = true;
+
+    // Pause player animation
+    if (b.playerRef && b.playerRef.anims) {
+      b.playerRef.anims.pause();
+    }
+
+    // Pause other enemies animations
+    if (gameScene.spawnSystem) {
+      for (const enemy of gameScene.spawnSystem.getAliveEnemies()) {
+        if (enemy !== b && enemy.anims) {
+          enemy.anims.pause();
+        }
+      }
+    }
+
     // Disable player inputs
     if (b.playerRef && (b.playerRef as any).controller) {
       b.playerRef.setVelocityX(0);
@@ -406,6 +426,21 @@ class BossIntroState implements IState<AncientKnight> {
       b.scene.time.delayedCall(800, () => {
         if (!b.active || b.isDead) return;
         cam.startFollow(b.playerRef!, true, 0.1, 0.1);
+
+        // Resume physics world and normal updates
+        b.scene.physics.world.resume();
+        gameScene.bossIntroActive = false;
+
+        // Resume other entities animations
+        const enemies = gameScene.spawnSystem?.getAliveEnemies() || [];
+        for (const enemy of enemies) {
+          if (enemy !== b && enemy.active && enemy.anims) {
+            enemy.anims.resume();
+          }
+        }
+        if (b.playerRef && b.playerRef.anims) {
+          b.playerRef.anims.resume();
+        }
 
         // Start fight
         b.bossActive = true;

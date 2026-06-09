@@ -12,7 +12,7 @@ export interface KeyBindings {
   dash: string; // Space
   ultimate: string; // F
   inventory: string; // I
-  interact: string; // E / Enter
+  interact: string; // G / Enter
 }
 
 export interface SettingsState {
@@ -60,7 +60,7 @@ const defaultKeyBindings: KeyBindings = {
   dash: 'SHIFT',
   ultimate: 'F',
   inventory: 'B',
-  interact: 'E',
+  interact: 'G',
 };
 
 const defaultSettings = {

@@ -27,7 +27,6 @@ export const DOCUMENT_REGISTRY: Record<string, DocumentDef> = {
     id: 'doc_1',
     title: 'Mảnh Giấy 1',
     content: `THÔNG TIN CÁ NHÂN & HỌC VẤN
-
 - Họ và Tên: TRẦN VĂN TRỌNG
 - Vai trò: Sinh Viên Năm Cuối
 - Học lực: Xếp loại Khá
@@ -38,26 +37,19 @@ export const DOCUMENT_REGISTRY: Record<string, DocumentDef> = {
     id: 'doc_2',
     title: 'Mảnh Giấy 2',
     content: `THÔNG TIN LIÊN HỆ
-
 - Số điện thoại: 0971028904
 - Địa chỉ: Đường 42, TP. Thủ Đức
-- Email:
-  email.tranvantrong.2015@gmail.com`,
+- Email: email.tranvantrong.2015@gmail.com`,
     icon: '📄',
   },
   doc_3: {
     id: 'doc_3',
     title: 'Mảnh Giấy 3',
     content: `KỸ NĂNG & CÔNG NGHỆ CHUYÊN MÔN
-
-- Ngôn ngữ Lập trình:
-  C#, HTML, CSS, JS, Java,
-  Kotlin, Swift, Python
+- Ngôn ngữ Lập trình: C#, HTML, CSS, JS, Java, Kotlin, Swift, Python
 - Framework: Laravel
 - Công nghệ & Công cụ: Git, GitHub
-- AI Agents:
-  DeepSeek, Claude, ChatGPT,
-  Gemini, V0.app, Grok`,
+- AI Agents: DeepSeek, Claude, ChatGPT, Gemini, V0.app, Grok`,
     icon: '📄',
   },
   merged_doc: {
@@ -73,20 +65,14 @@ export const DOCUMENT_REGISTRY: Record<string, DocumentDef> = {
 
 2. THÔNG TIN LIÊN HỆ
 - Số điện thoại: 0971028904
-- Địa chỉ: Đường 42, TP. Thủ Đức,
-  TP. Hồ Chí Minh
-- Email:
-  email.tranvantrong.2015@gmail.com
+- Địa chỉ: Đường 42, TP. Thủ Đức
+- Email: email.tranvantrong.2015@gmail.com
 
 3. KỸ NĂNG & CÔNG NGHỆ CHUYÊN MÔN
-- Ngôn ngữ Lập trình:
-  C#, HTML, CSS, JS, Java,
-  Kotlin, Swift, Python
+- Ngôn ngữ Lập trình: C#, HTML, CSS, JS, Java, Kotlin, Swift, Python
 - Framework sử dụng: Laravel
 - Công nghệ & Công cụ: Git, GitHub
-- AI Agents:
-  DeepSeek, Claude, ChatGPT,
-  Gemini, V0.app, Grok`,
+- AI Agents: DeepSeek, Claude, ChatGPT, Gemini, V0.app, Grok`,
     icon: '',
   },
 };
@@ -100,7 +86,7 @@ export class Document extends Phaser.GameObjects.Container {
   public readonly docId: string;
   public collected: boolean = false;
   private docDef: DocumentDef;
-  private iconText: Phaser.GameObjects.Text;
+  private iconSprite: Phaser.GameObjects.Sprite;
   private promptText: Phaser.GameObjects.Text;
   private glowGraphics: Phaser.GameObjects.Graphics;
 
@@ -119,14 +105,19 @@ export class Document extends Phaser.GameObjects.Container {
     this.glowGraphics.fillCircle(x, y + 4, 14);
     this.glowGraphics.setDepth(4);
 
-    // Document icon
-    this.iconText = scene.add.text(x, y - 6, this.docDef.icon, {
-      fontSize: '20px',
-    }).setOrigin(0.5).setDepth(6);
+    // Document sprite using pixel art texture
+    if (scene.textures.exists('document')) {
+      this.iconSprite = scene.add.sprite(x, y - 6, 'document');
+    } else {
+      this.iconSprite = scene.add.sprite(x, y - 6, 'player');
+      this.iconSprite.setTint(0xf5deb3);
+      this.iconSprite.setScale(0.4);
+    }
+    this.iconSprite.setOrigin(0.5).setDepth(6);
 
     // Float animation
     scene.tweens.add({
-      targets: this.iconText,
+      targets: this.iconSprite,
       y: y - 12,
       duration: 1200,
       yoyo: true,
@@ -174,7 +165,7 @@ export class Document extends Phaser.GameObjects.Container {
 
     // Pickup VFX: fly up and fade
     this.scene.tweens.add({
-      targets: this.iconText,
+      targets: this.iconSprite,
       y: this.y - 60,
       alpha: 0,
       scaleX: 1.5,
@@ -212,10 +203,10 @@ export class Document extends Phaser.GameObjects.Container {
   /** Cleanup */
   destroyDocument(): void {
     if (this.scene && this.scene.tweens) {
-      this.scene.tweens.killTweensOf(this.iconText);
+      this.scene.tweens.killTweensOf(this.iconSprite);
       this.scene.tweens.killTweensOf(this.glowGraphics);
     }
-    this.iconText.destroy();
+    this.iconSprite.destroy();
     this.glowGraphics.destroy();
     if (this.promptText && this.promptText.active) this.promptText.destroy();
     this.destroy();

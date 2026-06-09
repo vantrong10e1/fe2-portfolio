@@ -18,6 +18,7 @@ import type { IState } from '../../ai/StateMachine';
 import EventBus from '../../EventBus';
 import { AudioManager } from '../../managers/AudioManager';
 import { ENEMY_ATTACK_COOLDOWN, ENEMY_LEASH_RANGE } from '../../utils/Constants';
+import { DamageSystem } from '../../systems/DamageSystem';
 
 export class Enemy extends Character {
   // ── Configuration ─────────────────────────────────────────────────
@@ -43,6 +44,13 @@ export class Enemy extends Character {
   public readonly isFlying: boolean = false;
   /** Chase speed multiplier (e.g. Goblin runs faster when chasing) */
   public readonly chaseSpeedMult: number = 1.0;
+
+  // ── Slow tracking ──────────────────────────────────────────────────
+  public skillSlowActive: boolean = false;
+  public skillSlowFactor: number = 1.0;
+  public auraSlowActive: boolean = false;
+  public isBleeding: boolean = false;
+  private bleedTimerEvent: Phaser.Time.TimerEvent | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -130,8 +138,81 @@ export class Enemy extends Character {
 
   // ── Entity hook ────────────────────────────────────────────────────
 
+  getUnslowedSpeed(): number {
+    if (this.isBossBuffed && this.originalStats) {
+      return Math.round(this.originalStats.moveSpeed * 2.0);
+    }
+    return this.config.stats.moveSpeed;
+  }
+
   updateEntity(_dt: number): void {
     // State machine drives all behaviour via preUpdate
+    if (this.isDead) return;
+
+    // Bleed logic when Boss enters a Level 10 slow field
+    if (this.isBoss && !this.isDead) {
+      const gameScene = this.scene as any;
+      let insideLevel10Slow = false;
+      if (gameScene && gameScene.activeSlowFields) {
+        for (const field of gameScene.activeSlowFields) {
+          if (field.level >= 10) {
+            const dist = Phaser.Math.Distance.Between(field.x, field.y, this.x, this.y);
+            if (dist <= field.radius) {
+              insideLevel10Slow = true;
+              break;
+            }
+          }
+        }
+      }
+      if (insideLevel10Slow) {
+        this.applyBleed();
+      }
+    }
+
+    // Check if player is level 10 and within 100px
+    if (this.playerRef && !this.isBoss) {
+      const player = this.playerRef as any;
+      if (player.level >= 10) {
+        const dist = this.distanceToPlayer();
+        this.auraSlowActive = dist < 100;
+
+        // Spawn aura particles if inside
+        if (this.auraSlowActive && this.scene && Math.random() < 0.05) {
+          const gameScene = this.scene as any;
+          if (gameScene.effectsSystem) {
+            gameScene.effectsSystem.bulletImpact(this.x, this.y);
+          }
+        }
+      } else {
+        this.auraSlowActive = false;
+      }
+    } else {
+      this.auraSlowActive = false;
+    }
+
+    // Apply stacked speed multiplier
+    let multiplier = 1.0;
+    if (this.skillSlowActive) {
+      multiplier *= this.skillSlowFactor;
+    }
+    if (this.auraSlowActive) {
+      multiplier *= 0.6; // 40% slow (retains 60% speed)
+    }
+
+    this.stats.moveSpeed = Math.round(this.getUnslowedSpeed() * multiplier);
+
+    // Apply dynamic tint resolution
+    if (!this.isDead && !this.isInvincible) {
+      if (this.skillSlowActive) {
+        this.setTint(0x6699ff); // E skill blue tint takes priority
+      } else if (this.auraSlowActive) {
+        this.setTint(0xfff9aa); // Aura pale yellow tint
+      } else if (this.isBossBuffed) {
+        this.setTint(0xff6666); // Boss buff red tint
+      } else {
+        this.clearTint();
+      }
+    }
   }
 
   // ── Detection helpers ─────────────────────────────────────────────
@@ -180,6 +261,7 @@ export class Enemy extends Character {
 
   protected onDeath(): void {
     this.removeBossBuff();
+    this.clearBleed();
     const sm = this.stateMachine as unknown as StateMachine<Enemy>;
     sm.setState(EntityState.DEATH);
 
@@ -193,10 +275,81 @@ export class Enemy extends Character {
     });
   }
 
+  applyBleed(): void {
+    if (this.isDead || this.isBleeding) return;
+    this.isBleeding = true;
+
+    // Start bleed timer ticking every 5 seconds (5000ms)
+    this.bleedTimerEvent = this.scene.time.addEvent({
+      delay: 5000,
+      loop: true,
+      callback: () => {
+        if (this.isDead || !this.active) {
+          this.clearBleed();
+          return;
+        }
+        const damage = Math.round(this.maxHp * 0.05); // 5% of max HP
+        this.applyBleedDamage(damage);
+      }
+    });
+  }
+
+  applyBleedDamage(amount: number): void {
+    if (this.isDead) return;
+    this.currentHp = Math.max(0, this.currentHp - amount);
+    this.stats.currentHp = this.currentHp;
+    
+    this.setTint(0xff0000);
+    this.scene.time.delayedCall(150, () => {
+      if (!this.isDead) {
+        if (this.skillSlowActive) {
+          this.setTint(0x6699ff);
+        } else if (this.auraSlowActive) {
+          this.setTint(0xfff9aa);
+        } else if (this.isBossBuffed) {
+          this.setTint(0xff6666);
+        } else if (this.isBoss) {
+          this.setTint(0xff4444);
+        } else {
+          this.clearTint();
+        }
+      }
+    });
+
+    DamageSystem.showDamageNumber(this.scene, this.x, this.y, amount, true);
+    
+    const gameScene = this.scene as any;
+    if (gameScene.effectsSystem) {
+      gameScene.effectsSystem.criticalHitExplosion(this.x, this.y);
+    }
+
+    if (this.isBoss) {
+      EventBus.emit(GameEvent.BOSS_HP_CHANGED, {
+        name: this.config.name,
+        current: this.currentHp,
+        max: this.maxHp,
+        visible: true,
+      });
+    }
+
+    if (this.currentHp <= 0) {
+      this.die();
+    }
+  }
+
+  clearBleed(): void {
+    this.isBleeding = false;
+    if (this.bleedTimerEvent) {
+      this.bleedTimerEvent.remove();
+      this.bleedTimerEvent = null;
+    }
+  }
+
   // ── Cleanup ─────────────────────────────────────────────────────────
 
   destroy(fromScene?: boolean): void {
     this.removeBossBuff();
+    this.clearBleed();
     this.playerRef = null;
     super.destroy(fromScene);
   }

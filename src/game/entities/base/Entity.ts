@@ -31,6 +31,7 @@ export abstract class Entity extends Phaser.Physics.Arcade.Sprite {
 
   // ── Alive flag ─────────────────────────────────────────────────────
   public isDead = false;
+  public isBoss = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -135,6 +136,7 @@ export abstract class Entity extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(time, delta);
 
     if ((this.scene as any).isPaused) return;
+    if ((this.scene as any).bossIntroActive && !this.isBoss) return;
 
     if (this.isDead) return;
 
