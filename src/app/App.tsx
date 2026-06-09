@@ -3,7 +3,7 @@
  * Manages routing between menu and game pages, and applies global accessibility settings (Color Blind, Scaling).
  */
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { MainMenuPage } from '../pages/MainMenuPage';
 import { GamePage } from '../pages/GamePage';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -33,7 +33,7 @@ export function App() {
   }, [uiScale, fontScale]);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<MainMenuPage />} />
         <Route path="/play" element={<GamePage />} />
@@ -53,6 +53,6 @@ export function App() {
           </filter>
         </defs>
       </svg>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
