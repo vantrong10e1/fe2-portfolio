@@ -1,0 +1,358 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════
+   Shadow Blade — Design System
+   Dark fantasy theme inspired by Hollow Knight
+   ═══════════════════════════════════════════ */
+
+@theme {
+  /* Dark fantasy color palette */
+  --color-void: #0a0a0f;
+  --color-abyss: #12121a;
+  --color-shadow: #1a1a2e;
+  --color-dusk: #252540;
+  --color-twilight: #333355;
+  --color-mist: #8888aa;
+  --color-silver: #c0c0d8;
+  --color-light: #e8e8f0;
+
+  /* Accent colors */
+  --color-soul-blue: #4fc3f7;
+  --color-soul-glow: #81d4fa;
+  --color-fire: #ff6b35;
+  --color-fire-glow: #ff9a5c;
+  --color-blood: #e74c3c;
+  --color-blood-dark: #c0392b;
+  --color-mana: #3498db;
+  --color-mana-dark: #2980b9;
+  --color-exp: #f39c12;
+  --color-heal: #2ecc71;
+  --color-legendary: #e6c200;
+  --color-epic: #9b59b6;
+  --color-rare: #3498db;
+
+  /* Typography */
+  --font-display: 'Cinzel', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ═══════════════════════════════════════════
+   Global Reset & Base Styles
+   ═══════════════════════════════════════════ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-void);
+  color: var(--color-light);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════
+   Game Canvas Container
+   ═══════════════════════════════════════════ */
+
+#phaser-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: var(--color-void);
+  overflow: hidden;
+}
+
+#phaser-container canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* ═══════════════════════════════════════════
+   HUD Overlay (React UI on top of Phaser canvas)
+   ═══════════════════════════════════════════ */
+
+.hud-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.hud-overlay > * {
+  pointer-events: auto;
+}
+
+/* ═══════════════════════════════════════════
+   Health & Mana Bars
+   ═══════════════════════════════════════════ */
+
+.stat-bar-container {
+  position: relative;
+  width: 240px;
+  height: 20px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease-out;
+  position: relative;
+}
+
+.stat-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  border-radius: 2px 2px 0 0;
+}
+
+.hp-bar {
+  background: linear-gradient(90deg, var(--color-blood-dark), var(--color-blood));
+  box-shadow: 0 0 8px rgba(231, 76, 60, 0.5);
+}
+
+.mp-bar {
+  background: linear-gradient(90deg, var(--color-mana-dark), var(--color-mana));
+  box-shadow: 0 0 8px rgba(52, 152, 219, 0.5);
+}
+
+.exp-bar {
+  background: linear-gradient(90deg, #e67e22, var(--color-exp));
+  box-shadow: 0 0 8px rgba(243, 156, 18, 0.5);
+}
+
+.stat-bar-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.5px;
+  z-index: 2;
+}
+
+/* ═══════════════════════════════════════════
+   Buttons — Dark Fantasy Style
+   ═══════════════════════════════════════════ */
+
+.btn-primary {
+  padding: 12px 32px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-light);
+  background: linear-gradient(135deg, var(--color-twilight), var(--color-dusk));
+  border: 1px solid rgba(79, 195, 247, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-dusk), var(--color-twilight));
+  border-color: var(--color-soul-blue);
+  box-shadow: 0 0 20px rgba(79, 195, 247, 0.2),
+              inset 0 0 20px rgba(79, 195, 247, 0.05);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(79, 195, 247, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+/* ═══════════════════════════════════════════
+   Menu & Panel Styles
+   ═══════════════════════════════════════════ */
+
+.game-panel {
+  background: linear-gradient(
+    135deg,
+    rgba(18, 18, 26, 0.95),
+    rgba(26, 26, 46, 0.9)
+  );
+  border: 1px solid rgba(79, 195, 247, 0.15);
+  border-radius: 8px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* ═══════════════════════════════════════════
+   Animations
+   ═══════════════════════════════════════════ */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(79, 195, 247, 0.3); }
+  50% { box-shadow: 0 0 15px rgba(79, 195, 247, 0.6); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════
+   Loading Screen
+   ═══════════════════════════════════════════ */
+
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  background: radial-gradient(ellipse at center, var(--color-shadow), var(--color-void));
+}
+
+.loading-bar-track {
+  width: 300px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 24px;
+}
+
+.loading-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-soul-blue), var(--color-soul-glow));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+}
+
+/* ═══════════════════════════════════════════
+   Scrollbar
+   ═══════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-abyss);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-twilight);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-mist);
+}
+
+/* ═══════════════════════════════════════════
+   Accessibility & Scaling Systems
+   ═══════════════════════════════════════════ */
+
+:root {
+  --ui-scale: 1.0;
+  --font-scale: 1.0;
+}
+
+/* Colorblindness Filter Classes */
+.filter-protanopia {
+  filter: url('#protanopia-filter');
+}
+
+.filter-deuteranopia {
+  filter: url('#deuteranopia-filter');
+}
+
+.filter-tritanopia {
+  filter: url('#tritanopia-filter');
+}
+
+/* UI scale transformation for React overlays */
+.hud-overlay {
+  transform: scale(var(--ui-scale));
+  transform-origin: top left;
+  width: calc(100% / var(--ui-scale)) !important;
+  height: calc(100% / var(--ui-scale)) !important;
+}
+
+/* Font scale factor */
+body {
+  font-size: calc(1rem * var(--font-scale)) !important;
+}
