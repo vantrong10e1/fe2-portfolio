@@ -31,22 +31,22 @@ export interface SkillDef {
 
 export const SKILLS: Record<string, SkillDef> = {
   fireball: {
-    id: 'fireball', name: 'Fireball', key: 'Q',
+    id: 'fireball', name: 'Cầu lửa', key: 'Q',
     mpCost: SKILL_FIREBALL_MP_COST, cooldown: SKILL_FIREBALL_COOLDOWN,
     damage: SKILL_FIREBALL_DAMAGE,
   },
   slow: {
-    id: 'slow', name: 'Frost Nova', key: 'E',
+    id: 'slow', name: 'Vùng băng', key: 'E',
     mpCost: SKILL_SLOW_MP_COST, cooldown: SKILL_SLOW_COOLDOWN,
     damage: 0,
   },
   ultimate: {
-    id: 'ultimate', name: 'Shadow Burst', key: 'F',
+    id: 'ultimate', name: 'Bộc phá', key: 'F',
     mpCost: SKILL_ULTIMATE_MP_COST, cooldown: SKILL_ULTIMATE_COOLDOWN,
     damage: SKILL_ULTIMATE_DAMAGE,
   },
   stun_blast: {
-    id: 'stun_blast', name: 'Stun Blast', key: 'Q',
+    id: 'stun_blast', name: 'Đạn choáng', key: 'Q',
     mpCost: SKILL_STUN_BLAST_MP_COST, cooldown: SKILL_STUN_BLAST_COOLDOWN,
     damage: SKILL_STUN_BLAST_DAMAGE,
   },
@@ -148,7 +148,7 @@ export class SkillSystem {
     const isLevel10 = player && player.level >= 10;
     const isLevel9 = player && player.level >= 9;
     const radius = isLevel10 ? 400 : (isLevel9 ? 300 : SKILL_SLOW_RADIUS);
-    const slowFactor = isLevel10 ? 0.1 : (isLevel9 ? 0.1 : SKILL_SLOW_FACTOR); // 0.1 means speed is 10% (slowed by 90%)
+    const slowFactor = isLevel10 ? 0 : (isLevel9 ? 0.1 : SKILL_SLOW_FACTOR); // Level 10 fully paralyzes movement.
     const duration = isLevel10 ? 5000 : (isLevel9 ? 5000 : SKILL_SLOW_DURATION);
 
     // Register active slow field
@@ -174,6 +174,18 @@ export class SkillSystem {
         const e = enemy as any;
         e.skillSlowActive = true;
         e.skillSlowFactor = slowFactor;
+        if (isLevel10) {
+          const body = enemy.body as Phaser.Physics.Arcade.Body;
+          body?.setVelocity(0, 0);
+          const stunIcon = scene.add.circle(enemy.x, enemy.y - 28, 7, 0x99ddff, 0.85).setDepth(52);
+          scene.tweens.add({
+            targets: stunIcon,
+            y: enemy.y - 42,
+            alpha: 0,
+            duration,
+            onComplete: () => stunIcon.destroy(),
+          });
+        }
 
         // Restore after duration
         scene.time.delayedCall(duration, () => {
@@ -270,13 +282,16 @@ export class SkillSystem {
   ): Phaser.Physics.Arcade.Sprite[] {
     const hit: Phaser.Physics.Arcade.Sprite[] = [];
     const player = (scene as any).player;
+    const isLevel10 = player && player.level >= 10;
     const isLevel9 = player && player.level >= 9;
+    const radius = isLevel10 ? 200 : (isLevel9 ? 300 : SKILL_STUN_BLAST_RADIUS);
+    const stunDuration = isLevel10 ? 5000 : SKILL_STUN_BLAST_STUN_DURATION;
 
     // Visual: expanding white ring
     const ring = scene.add.circle(x, y, 10, 0xeeeeff, 0.6).setDepth(10);
     scene.tweens.add({
       targets: ring,
-      radius: SKILL_STUN_BLAST_RADIUS,
+      radius,
       alpha: 0,
       duration: 350,
       onComplete: () => ring.destroy(),
@@ -285,7 +300,7 @@ export class SkillSystem {
     // Shockwave line
     const shockGfx = scene.add.graphics().setDepth(10);
     shockGfx.lineStyle(3, 0xaaccff, 0.8);
-    shockGfx.strokeCircle(x, y, SKILL_STUN_BLAST_RADIUS * 0.6);
+    shockGfx.strokeCircle(x, y, radius * 0.6);
     scene.tweens.add({
       targets: shockGfx,
       alpha: 0,
@@ -300,13 +315,41 @@ export class SkillSystem {
     for (const enemy of enemies) {
       if (!enemy.active) continue;
       const dist = Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y);
-      if (dist <= SKILL_STUN_BLAST_RADIUS) {
+      if (dist <= radius) {
         hit.push(enemy);
 
         const isFacingRight = player ? player.facing === 'right' : true;
         const isTargetInFront = player ? (isFacingRight ? (enemy.x >= player.x) : (enemy.x <= player.x)) : true;
 
-        if (isLevel9) {
+        if (isLevel10) {
+          const e = enemy as any;
+          const body = enemy.body as Phaser.Physics.Arcade.Body;
+          body?.setVelocity(0, 0);
+
+          const stunId = scene.time.now + Math.random();
+          enemy.setData('stunBlastId', stunId);
+          e.skillSlowActive = true;
+          e.skillSlowFactor = 0;
+          enemy.setTint(0xddddff);
+
+          const stunIcon = scene.add.circle(enemy.x, enemy.y - 25, 7, 0xffff00, 0.85).setDepth(52);
+          scene.tweens.add({
+            targets: stunIcon,
+            y: enemy.y - 40,
+            alpha: 0,
+            duration: stunDuration,
+            onComplete: () => stunIcon.destroy(),
+          });
+
+          scene.time.delayedCall(stunDuration, () => {
+            if (enemy.active && enemy.getData('stunBlastId') === stunId) {
+              e.skillSlowActive = false;
+              e.skillSlowFactor = 1.0;
+              enemy.setData('stunBlastId', null);
+              enemy.clearTint();
+            }
+          });
+        } else if (isLevel9) {
           if (isTargetInFront) {
             // Stun: freeze velocity and speed
             const body = enemy.body as Phaser.Physics.Arcade.Body;

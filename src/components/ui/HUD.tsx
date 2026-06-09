@@ -70,7 +70,7 @@ export function HUD() {
           
           <div className="text-center space-y-4 animate-slide-up z-10 p-6">
             <p className="text-lg tracking-widest text-[#ff3333] font-bold uppercase animate-pulse" style={{ fontFamily: 'Press Start 2P, VT323, monospace' }}>
-              BOSS DETECTED
+              PHÁT HIỆN TRÙM
             </p>
             <div className="h-px w-48 mx-auto bg-gradient-to-r from-transparent via-[#ff3333] to-transparent" />
             <h1 className="text-4xl md:text-5xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-[#ffd700] via-[#ffd700] to-[#b8860b] filter drop-shadow-[0_0_15px_rgba(255,215,0,0.4)]" style={{ fontFamily: 'Press Start 2P, VT323, monospace' }}>
@@ -88,10 +88,10 @@ export function HUD() {
         <div className="absolute inset-x-0 top-1/3 flex flex-col items-center justify-center z-40 animate-fade-in pointer-events-none">
           <div className="bg-black/60 border-y border-red-500/30 w-full py-4 backdrop-blur-sm flex flex-col items-center justify-center animate-pulse-glow">
             <h2 className="text-2xl md:text-3xl font-extrabold tracking-widest text-red-500 text-center filter drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" style={{ fontFamily: 'Press Start 2P, VT323, monospace' }}>
-              {phaseData.phase === 2 ? 'BOSS ANGRY' : 'PHASE 2: BURST'}
+              {phaseData.phase === 3 ? 'TRÙM NỔI GIẬN' : 'GIAI ĐOẠN 2: BỘC PHÁ'}
             </h2>
             <p className="text-xs text-mist tracking-widest uppercase mt-1" style={{ fontFamily: 'Press Start 2P, VT323, monospace' }}>
-              Power increased!
+              Sức mạnh đã tăng!
             </p>
           </div>
         </div>

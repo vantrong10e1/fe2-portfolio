@@ -54,6 +54,7 @@ export class GameScene extends Phaser.Scene {
 
   /** Unique ID counter for enemies */
   private nextEnemyId: number = 1;
+  private nextProjectileId: number = 1;
 
   /** Whether the game is currently paused */
   private isPaused: boolean = false;
@@ -320,8 +321,8 @@ export class GameScene extends Phaser.Scene {
 
     const p = this.player as any;
     const angle = p._attackAngle !== undefined ? p._attackAngle : (this.player.facing === 'right' ? 0 : Math.PI);
-    const radius = this.player.level >= 5 ? 80 : 55;
-    const hitRange = radius + 24; // Include quái body radius margin
+    const slashRadius = (this.player.level >= 5 ? 90 : 62) + (this.player.level >= 10 ? 50 : 0);
+    const slashHalfAngle = Phaser.Math.DegToRad(85);
     const cx = this.player.x + 10 * Math.cos(angle);
     const cy = this.player.y + 10 * Math.sin(angle);
 
@@ -338,13 +339,11 @@ export class GameScene extends Phaser.Scene {
       const dist = Phaser.Math.Distance.Between(cx, cy, enemy.x, enemy.y);
       const enemyAngle = Phaser.Math.Angle.Between(cx, cy, enemy.x, enemy.y);
       const diff = Phaser.Math.Angle.ShortestBetween(angle, enemyAngle);
-      
+
       const body = enemy.body as Phaser.Physics.Arcade.Body;
       const enemySize = Math.max(body.width, body.height) / 2;
       const effectiveDist = dist - enemySize;
-      const maxSlashRadius = radius * 1.3;
-      
-      const inSlashRange = effectiveDist <= maxSlashRadius && Math.abs(diff) <= Phaser.Math.DegToRad(75);
+      const inSlashRange = effectiveDist <= slashRadius + 18 && Math.abs(diff) <= slashHalfAngle;
 
       if (inSlashRange) {
         this.attackProcessed.add(eid);
@@ -357,6 +356,7 @@ export class GameScene extends Phaser.Scene {
           weapon.getDamage(), weapon.getKnockback(),
           critChanceOverride,
           isBoss,
+          this.player.level >= 10 ? 0.3 : 0,
         );
 
         enemy.takeDamage(result.finalDamage);
@@ -559,9 +559,12 @@ export class GameScene extends Phaser.Scene {
       body.setVelocity(vx, vy);
     }
 
+    const projectileId = this.nextProjectileId++;
+
     // Store spawn position for max range check
-    bullet.setData('spawnX', this.player.x);
-    bullet.setData('spawnY', this.player.y);
+    bullet.setData('projectileId', projectileId);
+    bullet.setData('spawnX', bx);
+    bullet.setData('spawnY', by);
     bullet.setData('maxRange', weapon.getMaxRange());
 
     // Muzzle flash VFX
@@ -569,7 +572,9 @@ export class GameScene extends Phaser.Scene {
 
     // Auto-kill after lifetime (fallback safety net)
     this.time.delayedCall(weapon.getBulletLifetime(), () => {
-      this.killBullet(bullet);
+      if (bullet.active && bullet.getData('projectileId') === projectileId) {
+        this.killBullet(bullet);
+      }
     });
   }
 
@@ -581,6 +586,7 @@ export class GameScene extends Phaser.Scene {
   ): void {
     const bullet = bulletObj as Phaser.GameObjects.Rectangle;
     const enemy = enemyObj as unknown as Enemy;
+    if (!bullet.active) return;
     if (!enemy.active) return;
 
     const weapon = this.player.getWeaponSystem();
@@ -596,6 +602,7 @@ export class GameScene extends Phaser.Scene {
       weapon.getDamage(), weapon.getKnockback(),
       critChance,
       isBoss,
+      this.player.level >= 10 ? 0.3 : 0,
     );
 
     enemy.takeDamage(result.finalDamage);
@@ -643,6 +650,7 @@ export class GameScene extends Phaser.Scene {
   ): void {
     const fb = fbObj as Phaser.GameObjects.Rectangle;
     const enemy = enemyObj as unknown as Enemy;
+    if (!fb.active) return;
     if (!enemy.active) return;
 
     let dmg = SKILL_FIREBALL_DAMAGE + this.player.skillDamageBonus;
@@ -657,9 +665,52 @@ export class GameScene extends Phaser.Scene {
     DamageSystem.showDamageNumber(this, enemy.x, enemy.y, finalDamage, false);
     this.effectsSystem.hitFlash(enemy);
 
+    if (this.player.level >= 10) {
+      this.applyFireballBurnSpread(enemy);
+    }
+
     this.killFireball(fb);
     this.triggerHitStop(60);
     this.cameraManager.shake(120, 0.004);
+  }
+
+  private applyFireballBurnSpread(source: Enemy): void {
+    const burnTargets = new Set<Enemy>();
+    burnTargets.add(source);
+
+    for (const enemy of this.spawnSystem.getAliveEnemies()) {
+      if (!enemy.active || enemy.isDead) continue;
+      const dist = Phaser.Math.Distance.Between(source.x, source.y, enemy.x, enemy.y);
+      if (dist <= 200) {
+        burnTargets.add(enemy);
+      }
+    }
+
+    for (const enemy of burnTargets) {
+      this.applyFireballBurn(enemy);
+    }
+  }
+
+  private applyFireballBurn(enemy: Enemy): void {
+    const burnId = this.nextProjectileId++;
+    enemy.setData('fireballBurnId', burnId);
+    enemy.setTint(0xff8844);
+
+    for (let tick = 1; tick <= 5; tick++) {
+      this.time.delayedCall(tick * 1000, () => {
+        if (!enemy.active || enemy.isDead || enemy.getData('fireballBurnId') !== burnId) return;
+
+        const burnDamage = Math.max(1, Math.round(enemy.maxHp * 0.02));
+        enemy.takeDamage(burnDamage);
+        DamageSystem.showDamageNumber(this, enemy.x, enemy.y - 8, burnDamage, false);
+        this.effectsSystem.fireballTrail(enemy.x, enemy.y);
+
+        if (tick === 5 && enemy.active && enemy.getData('fireballBurnId') === burnId) {
+          enemy.setData('fireballBurnId', null);
+          enemy.clearTint();
+        }
+      });
+    }
   }
 
   // ── Skills ─────────────────────────────────────────────────────────
@@ -811,7 +862,10 @@ export class GameScene extends Phaser.Scene {
     const enemy = enemyObj as unknown as Enemy;
     if (!enemy.active) return;
 
-    const damage = enemy.stats.attack;
+    const isBoss = enemy.config.category === 'boss';
+    const damage = isBoss && this.player.level >= 10
+      ? Math.floor(enemy.stats.attack * 0.8)
+      : enemy.stats.attack;
     const dealt = this.player.takeDamage(damage);
 
     if (dealt > 0) {
@@ -882,9 +936,9 @@ export class GameScene extends Phaser.Scene {
         onComplete: () => potionText.destroy(),
       });
 
-      // Spawn Mảnh Giấy 3 on the ground at a fixed position near the boss
+      // Spawn Mảnh Giấy 3 at the boss's death position
       const doc3Y = WORLD_HEIGHT - TILE_SIZE - 12;
-      const doc3 = new Document(this, 2900, doc3Y, 'doc_3');
+      const doc3 = new Document(this, tx, ty, 'doc_3');
       this.documents.push(doc3);
     }
 
@@ -920,8 +974,11 @@ export class GameScene extends Phaser.Scene {
   private onBossAttackHit(data: { damage: number; x: number; y: number; direction: number }): void {
     if (!this.sys.isActive() || !this.player.active || this.player.isDead) return;
 
-    this.player.takeDamage(data.damage);
-    DamageSystem.showDamageNumber(this, this.player.x, this.player.y, data.damage, false);
+    const damage = this.player.level >= 10 ? Math.floor(data.damage * 0.8) : data.damage;
+    const dealt = this.player.takeDamage(damage);
+    if (dealt <= 0) return;
+
+    DamageSystem.showDamageNumber(this, this.player.x, this.player.y, dealt, false);
     this.effectsSystem.hitFlash(this.player);
 
     // Knockback from boss

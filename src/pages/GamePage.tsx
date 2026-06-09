@@ -23,13 +23,6 @@ export function GamePage() {
     // Tutorial removed
   }, []);
 
-  const handleCloseTutorial = () => {
-    setShowTutorial(false);
-    localStorage.setItem('shadow_blade_tutorial_shown', 'true');
-    EventBus.emit('tutorial-active', false);
-    EventBus.emit(GameEvent.GAME_RESUMED);
-  };
-
   useEffect(() => {
     const handleOpenSettings = () => {
       setShowSettings(true);

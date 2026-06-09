@@ -32,7 +32,7 @@ const BOSS_STATS: CharacterStats = {
 const BOSS_CONFIG: EnemyConfig = {
   type: EnemyType.ANCIENT_KNIGHT,
   category: EnemyCategory.BOSS,
-  name: 'Ancient Knight',
+  name: 'Hiệp Sĩ Cổ Đại',
   stats: BOSS_STATS,
   detectionRange: 500,
   attackRange: 255,
@@ -55,7 +55,10 @@ const PHASE_3_THRESHOLD = 0.3;
 // Attack timings per phase
 const PHASE_ATTACK_COOLDOWNS = [1200, 800, 500]; // ms
 const PHASE_SPEEDS = [40, 60, 85]; // px/s
-const PHASE_DAMAGE_MULT = [1.0, 1.3, 1.8];
+const PHASE_DAMAGE_MULT = [1.0, 1.3, 1.5];
+const RAGE_COOLDOWN_MULT = 0.8;
+const NORMAL_MINION_SPAWN_INTERVAL = 5000;
+const RAGE_MINION_SPAWN_INTERVAL = 2000;
 
 export class AncientKnight extends Enemy {
   /** Current boss phase (0, 1, 2) */
@@ -117,8 +120,9 @@ export class AncientKnight extends Enemy {
 
     if (newPhase > this.currentPhase) {
       this.currentPhase = newPhase;
-      this.attackCooldown = PHASE_ATTACK_COOLDOWNS[newPhase];
+      this.attackCooldown = this.getPhaseAttackCooldown();
       this.stats.moveSpeed = PHASE_SPEEDS[newPhase];
+      this.stats.defense = newPhase === 2 ? Math.floor(BOSS_STATS.defense * 0.5) : BOSS_STATS.defense;
 
       // Transition to phase transition state
       bossSm(this).setState('boss-transition' as EntityState);
@@ -131,6 +135,11 @@ export class AncientKnight extends Enemy {
 
   getPhaseDamageMult(): number {
     return PHASE_DAMAGE_MULT[this.currentPhase];
+  }
+
+  getPhaseAttackCooldown(): number {
+    const cooldown = PHASE_ATTACK_COOLDOWNS[this.currentPhase];
+    return this.currentPhase === 2 ? cooldown * RAGE_COOLDOWN_MULT : cooldown;
   }
 
   // ── Override damage to emit boss HP ─────────────────────────────
@@ -188,7 +197,8 @@ export class AncientKnight extends Enemy {
 
     // Safety cap: don't spawn if there are already too many active enemies (prevent crash/lag)
     const group = (this.scene as any).enemiesGroup;
-    if (group && group.getLength() >= 20) return;
+    const activeEnemyCount = (this.scene as any).spawnSystem?.getAliveEnemies().length ?? group?.getLength() ?? 0;
+    if (activeEnemyCount >= 20) return;
 
     const groundY = this.scene.physics.world.bounds.height - 32 - 48; // Spawn on ground Y
 
@@ -204,7 +214,6 @@ export class AncientKnight extends Enemy {
       minion.setInteractive({ useHandCursor: true });
       minion.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
         if (pointer.rightButtonDown()) {
-          const EventBus = require('../../EventBus').default;
           EventBus.emit('enemy-selected', minion);
         }
       });
@@ -248,8 +257,8 @@ export class AncientKnight extends Enemy {
       this.slamTimer += dt;
       this.spawnMinionsTimer += dt;
 
-      // Spawn 5 elite Goblins every 5s
-      if (this.spawnMinionsTimer >= 5000) {
+      const spawnInterval = this.currentPhase === 2 ? RAGE_MINION_SPAWN_INTERVAL : NORMAL_MINION_SPAWN_INTERVAL;
+      if (this.spawnMinionsTimer >= spawnInterval) {
         this.spawnMinionsTimer = 0;
         this.spawnEliteMinions();
       }
@@ -284,7 +293,8 @@ export class AncientKnight extends Enemy {
   }
 
   canCharge(): boolean {
-    return this.currentPhase >= 1 && this.chargeTimer >= this.chargeInterval;
+    const interval = this.currentPhase === 2 ? this.chargeInterval * RAGE_COOLDOWN_MULT : this.chargeInterval;
+    return this.currentPhase >= 1 && this.chargeTimer >= interval;
   }
 
   resetChargeTimer(): void {
@@ -292,7 +302,8 @@ export class AncientKnight extends Enemy {
   }
 
   canSlam(): boolean {
-    return this.currentPhase >= 2 && this.slamTimer >= this.slamInterval;
+    const interval = this.currentPhase === 2 ? this.slamInterval * RAGE_COOLDOWN_MULT : this.slamInterval;
+    return this.currentPhase >= 2 && this.slamTimer >= interval;
   }
 
   resetSlamTimer(): void {
@@ -406,7 +417,7 @@ class BossIntroState implements IState<AncientKnight> {
     // Trigger UI intro display in React overlay
     EventBus.emit('boss-intro-start', {
       name: b.config.name,
-      title: 'THE VOID KEEPER',
+      title: 'Kẻ Gác Hư Không',
     });
 
     // Roar blast visual and camera shake
@@ -537,7 +548,7 @@ class BossAttackState implements IState<AncientKnight> {
     });
 
     // Return to chase
-    b.scene.time.delayedCall(PHASE_ATTACK_COOLDOWNS[b.currentPhase], () => {
+    b.scene.time.delayedCall(b.getPhaseAttackCooldown(), () => {
       if (!b.active || b.isDead) return;
       if (bossSm(b).currentStateName === EntityState.ATTACK) {
         bossSm(b).setState(EntityState.CHASE);

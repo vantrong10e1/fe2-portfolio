@@ -253,6 +253,17 @@ export class Enemy extends Character {
     super.onDamaged(amount);
     AudioManager.getInstance().playSFX('enemy-hit');
     const sm = this.stateMachine as unknown as StateMachine<Enemy>;
+    const uninterruptibleBossStates = new Set<EntityState | string>([
+      EntityState.ATTACK,
+      'boss-charge',
+      'boss-slam',
+      'boss-transition',
+    ]);
+
+    if (this.isBoss && uninterruptibleBossStates.has(sm.currentStateName)) {
+      return;
+    }
+
     // Only interrupt if not already dying
     if (sm.currentStateName !== EntityState.DEATH) {
       sm.setState(EntityState.TAKE_DAMAGE);

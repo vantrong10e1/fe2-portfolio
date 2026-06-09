@@ -33,7 +33,7 @@ export class PreloadScene extends Phaser.Scene {
 
   create(): void {
     AudioManager.getInstance();
-    
+
     // Catch any real asset loading errors
     this.load.on('loaderror', (fileObj: any) => {
       console.error('Asset missing or failed to load:', fileObj.src);
@@ -58,12 +58,12 @@ export class PreloadScene extends Phaser.Scene {
     const fill = this.add.graphics();
 
     // Texts
-    const loadingText = this.add.text(width / 2, y - 24, 'Loading…', {
+    const loadingText = this.add.text(width / 2, y - 24, 'Đang tải...', {
       fontSize: '18px',
       color: '#ffffff',
     }).setOrigin(0.5);
 
-    const statusText = this.add.text(width / 2, y + 40, 'Initializing...', {
+    const statusText = this.add.text(width / 2, y + 40, 'Khởi động...', {
       fontSize: '14px',
       color: '#aaaaaa',
     }).setOrigin(0.5);
@@ -75,15 +75,15 @@ export class PreloadScene extends Phaser.Scene {
       callback: () => {
         progress += 0.05;
         if (progress > 1) progress = 1;
-        
+
         fill.clear();
         fill.fillStyle(0x3498db, 1);
         fill.fillRect(x + 2, y + 2, (BAR_WIDTH - 4) * progress, BAR_HEIGHT - 4);
 
-        if (progress < 0.3) statusText.setText('Loading Textures...');
-        else if (progress < 0.6) statusText.setText('Loading Audio...');
-        else if (progress < 0.9) statusText.setText('Generating Map Data...');
-        else statusText.setText('Ready!');
+        if (progress < 0.3) statusText.setText('Đang tải Texture...');
+        else if (progress < 0.6) statusText.setText('Đang tải Âm thanh...');
+        else if (progress < 0.9) statusText.setText('Tạo dữ liệu Map...');
+        else statusText.setText('Sẵn sàng!');
       }
     });
 
@@ -469,13 +469,13 @@ export class PreloadScene extends Phaser.Scene {
     g.fillStyle(0x5d4037, 1);
     g.fillRect(16, 22, 4, 4);
     // Slash arc trail (white-blue sweep)
-    g.lineStyle(2, 0xffffff, 0.9);
+    g.lineStyle(1, 0xffffff, 0.55);
     g.beginPath();
-    g.arc(16, 16, 18, -1.2, 0.3, false);
+    g.arc(16, 16, 15, -1.1, 0.2, false);
     g.strokePath();
-    g.lineStyle(3, 0x88ccff, 0.5);
+    g.lineStyle(2, 0x88ccff, 0.3);
     g.beginPath();
-    g.arc(16, 16, 16, -1.0, 0.5, false);
+    g.arc(16, 16, 13, -0.95, 0.35, false);
     g.strokePath();
     g.generateTexture('player-atk-1', 32, 48);
     g.clear();
@@ -496,13 +496,13 @@ export class PreloadScene extends Phaser.Scene {
     g.fillStyle(0x5d4037, 1);
     g.fillRect(16, 24, 3, 4);
     // Wide slash trail (fading sweep)
-    g.lineStyle(3, 0xffffff, 0.7);
+    g.lineStyle(2, 0xffffff, 0.45);
     g.beginPath();
-    g.arc(16, 20, 20, -0.8, 0.8, false);
+    g.arc(16, 20, 17, -0.7, 0.65, false);
     g.strokePath();
-    g.lineStyle(4, 0x88ccff, 0.3);
+    g.lineStyle(2, 0x88ccff, 0.18);
     g.beginPath();
-    g.arc(16, 20, 22, -0.6, 1.0, false);
+    g.arc(16, 20, 18, -0.55, 0.8, false);
     g.strokePath();
     g.generateTexture('player-atk-2', 32, 48);
     g.clear();

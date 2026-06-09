@@ -66,7 +66,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
   },
   basic_gun: {
     id: 'basic_gun',
-    name: 'Flintlock Pistol',
+    name: 'Light Gun',
     type: 'ranged',
     damage: 10,
     attackSpeed: 3.0,
@@ -285,8 +285,16 @@ export class WeaponSystem {
         this.equipped.maxRange = 750;         // Súng bắn xa cố định 750px
       }
     }
+    if (level >= 10) {
+      if (this.equipped.id === 'basic_sword') {
+        this.equipped.hitboxWidth += 50;
+        this.equipped.hitboxOffsetX += 50;
+      } else if (this.equipped.id === 'basic_gun') {
+        this.equipped.maxRange += 50;
+      }
+    }
 
-    // Level 8+: Súng tăng lượng đạn 10 -> 20, nạp đạn nhanh
+    // Level 8+:
     if (level >= 8) {
       if (this.equipped.id === 'basic_gun') {
         this.equipped.magazineSize = 20;

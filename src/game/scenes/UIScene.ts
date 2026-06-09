@@ -99,7 +99,7 @@ export class UIScene extends Phaser.Scene {
     { id: 'reach_lvl_10', title: 'Cảnh Giới Tột Cùng', description: 'Đạt cấp độ 10', unlocked: false },
     { id: 'first_treasure', title: 'Thợ Săn Kho Báu', description: 'Mở rương báu đầu tiên', unlocked: false },
     { id: 'collect_all_pages', title: 'Nhà Sử Học', description: 'Thu thập đầy đủ 3 tài liệu cổ', unlocked: false },
-    { id: 'first_boss_kill', title: 'Diệt Hiệp Sĩ Cổ Đại', description: 'Đánh bại Boss Ancient Knight', unlocked: false },
+    { id: 'first_boss_kill', title: 'Diệt Hiệp Sĩ Cổ Đại', description: 'Đánh bại trùm Hiệp Sĩ Cổ Đại', unlocked: false },
     { id: 'complete_game', title: 'Chúa Tể Bóng Đêm', description: 'Hoàn thành trò chơi (Ghép hồ sơ)', unlocked: false },
   ];
 
@@ -109,6 +109,8 @@ export class UIScene extends Phaser.Scene {
   // ── Settings Panel (Guide) ─────────────────────────────────────────
   private settingsContainer!: Phaser.GameObjects.Container;
   private gameOverContainer!: Phaser.GameObjects.Container;
+  private nameInputContainer!: Phaser.GameObjects.Container;
+  private victoryContainer!: Phaser.GameObjects.Container;
   private btnBgmOn!: Phaser.GameObjects.Text;
   private btnBgmOff!: Phaser.GameObjects.Text;
   private btnFontLow!: Phaser.GameObjects.Text;
@@ -159,6 +161,7 @@ export class UIScene extends Phaser.Scene {
   private docViewportH: number = 350;
   private keyG!: Phaser.Input.Keyboard.Key;
   private keyEsc!: Phaser.Input.Keyboard.Key;
+  private currentDocumentId: string = '';
 
   // ── Portfolio Viewer ───────────────────────────────────────────────
   private portfolioViewerContainer!: Phaser.GameObjects.Container;
@@ -228,7 +231,7 @@ export class UIScene extends Phaser.Scene {
     const row3 = row2 + BAR_H + ROW_GAP;               // EXP bar
 
     // ── LEVEL ────────────────────────────────────────────────────
-    this.levelText = this.add.text(LABEL_COL, row0, 'LEVEL 1', {
+    this.levelText = this.add.text(LABEL_COL, row0, 'CẤP 1', {
       fontSize: '12px', color: '#4fc3f7', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 1,
     }).setDepth(10);
@@ -299,6 +302,12 @@ export class UIScene extends Phaser.Scene {
 
     // ── Game Over Panel (hidden) ─────────────────────────────────
     this.createGameOverPanel(camW, camH);
+
+    // ── Name Input Panel (hidden) ────────────────────────────────
+    this.createNameInputPanel(camW, camH);
+
+    // ── Victory Panel (hidden) ───────────────────────────────────
+    this.createVictoryPanel(camW, camH);
 
     // ── Target HUD Frame & Tooltip UI (hidden) ───────────────────
     this.createTargetFrame(camW, camH);
@@ -441,9 +450,24 @@ export class UIScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     weaponZone.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+      // Glow effect on weapon slot
+      weaponBg.lineStyle(3, 0xffd700, 1);
+      weaponBg.strokeRoundedRect(startX, y, slotSize, slotSize, 4);
+      this.tweens.add({
+        targets: weaponBg,
+        alpha: { from: 0.85, to: 1 },
+        duration: 200,
+      });
       this.showTooltip('weapon', pointer.x, pointer.y);
     });
     weaponZone.on('pointerout', () => {
+      // Remove glow effect
+      weaponBg.lineStyle(2, 0xffd700, 0.75);
+      weaponBg.clear();
+      weaponBg.fillStyle(0x111122, 0.85);
+      weaponBg.fillRoundedRect(startX, y, slotSize, slotSize, 4);
+      weaponBg.lineStyle(2, 0xffd700, 0.75);
+      weaponBg.strokeRoundedRect(startX, y, slotSize, slotSize, 4);
       this.hideTooltip();
     });
 
@@ -487,9 +511,27 @@ export class UIScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
 
       skillZone.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+        // Glow effect on skill slot
+        bg.lineStyle(3, item.color, 1);
+        bg.clear();
+        bg.fillStyle(0x111122, 0.85);
+        bg.fillRoundedRect(x, y, slotSize, slotSize, 4);
+        bg.lineStyle(3, item.color, 1);
+        bg.strokeRoundedRect(x, y, slotSize, slotSize, 4);
+        this.tweens.add({
+          targets: bg,
+          alpha: { from: 0.85, to: 1 },
+          duration: 200,
+        });
         this.showTooltip(item.id, pointer.x, pointer.y);
       });
       skillZone.on('pointerout', () => {
+        // Remove glow effect
+        bg.clear();
+        bg.fillStyle(0x111122, 0.85);
+        bg.fillRoundedRect(x, y, slotSize, slotSize, 4);
+        bg.lineStyle(2, item.color, 0.6);
+        bg.strokeRoundedRect(x, y, slotSize, slotSize, 4);
         this.hideTooltip();
       });
     });
@@ -519,13 +561,13 @@ export class UIScene extends Phaser.Scene {
     panel.strokeRoundedRect(px, py, panelW, panelH, 8);
 
     // Title
-    const title = this.add.text(camW / 2, py + 18, '📦 TRANG BỊ & VẬT PHẨM', {
+    const title = this.add.text(camW / 2, py + 18, 'KHO ĐỒ', {
       fontSize: '16px', color: '#4fc3f7', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     // Gold display
     this.inventoryGoldText = this.add.text(px + panelW - 20, py + 18, '💰 0', {
-      fontSize: '13px', color: '#f1c40f', fontStyle: 'bold',
+      fontSize: '16px', color: '#f1c40f', fontStyle: 'bold',
     }).setOrigin(1, 0.5);
 
     // Divider
@@ -583,7 +625,7 @@ export class UIScene extends Phaser.Scene {
 
     // Section: Equipment
     if (line < this.inventoryItemTexts.length) {
-      this.inventoryItemTexts[line].setText('── TRANG BỊ ──');
+      this.inventoryItemTexts[line].setText('-> TRANG BỊ ');
       this.inventoryItemTexts[line].setColor('#4fc3f7');
       this.inventoryItemTexts[line].setFontStyle('bold');
       this.inventoryItemTexts[line].setData('origColor', '#4fc3f7');
@@ -615,7 +657,7 @@ export class UIScene extends Phaser.Scene {
     });
 
     if (consumables.length > 0 && line < this.inventoryItemTexts.length) {
-      this.inventoryItemTexts[line].setText('── TIÊU HAO ──');
+      this.inventoryItemTexts[line].setText('-> VẬT PHẨM');
       this.inventoryItemTexts[line].setColor('#4fc3f7');
       this.inventoryItemTexts[line].setFontStyle('bold');
       this.inventoryItemTexts[line].setData('origColor', '#4fc3f7');
@@ -637,7 +679,7 @@ export class UIScene extends Phaser.Scene {
     // Section: Collected Documents
     const collectedDocs = this.inventoryRef.getCollectedDocuments();
     if (collectedDocs.length > 0 && line < this.inventoryItemTexts.length) {
-      this.inventoryItemTexts[line].setText('── TÀI LIỆU ──');
+      this.inventoryItemTexts[line].setText('-> TÀI LIỆU');
       this.inventoryItemTexts[line].setColor('#ffd700'); // gold
       this.inventoryItemTexts[line].setFontStyle('bold');
       this.inventoryItemTexts[line].setData('origColor', '#ffd700');
@@ -743,12 +785,12 @@ export class UIScene extends Phaser.Scene {
 
       // Close inventory panel
       EventBus.emit(GameEvent.INVENTORY_TOGGLE, { open: false });
-      
+
       const docDef = DOCUMENT_REGISTRY[data.id];
       if (docDef) {
         // Pause the game scene
         EventBus.emit(GameEvent.GAME_PAUSED);
-        
+
         // Open document viewer
         this.openDocumentViewer(docDef);
       }
@@ -926,15 +968,16 @@ export class UIScene extends Phaser.Scene {
     const cornerColor = 0x8b6914;
     const ci = edgeInset + 4;
     // Top-left corner
-    scrollGfx.lineStyle(2, cornerColor, 0.5);
-    scrollGfx.lineBetween(sx + ci, sy + rollerH + ci, sx + ci + 25, sy + rollerH + ci);
-    scrollGfx.lineBetween(sx + ci, sy + rollerH + ci, sx + ci, sy + rollerH + ci + 25);
+    const cornerLen = 14;
+    scrollGfx.lineStyle(1, cornerColor, 0.35);
+    scrollGfx.lineBetween(sx + ci, sy + rollerH + ci, sx + ci + cornerLen, sy + rollerH + ci);
+    scrollGfx.lineBetween(sx + ci, sy + rollerH + ci, sx + ci, sy + rollerH + ci + cornerLen);
     // Top-right corner
-    scrollGfx.lineBetween(sx + scrollW - ci, sy + rollerH + ci, sx + scrollW - ci - 25, sy + rollerH + ci);
-    scrollGfx.lineBetween(sx + scrollW - ci, sy + rollerH + ci, sx + scrollW - ci, sy + rollerH + ci + 25);
+    scrollGfx.lineBetween(sx + scrollW - ci, sy + rollerH + ci, sx + scrollW - ci - cornerLen, sy + rollerH + ci);
+    scrollGfx.lineBetween(sx + scrollW - ci, sy + rollerH + ci, sx + scrollW - ci, sy + rollerH + ci + cornerLen);
     // Bottom-left corner
-    scrollGfx.lineBetween(sx + ci, bottomY - ci, sx + ci + 25, bottomY - ci);
-    scrollGfx.lineBetween(sx + ci, bottomY - ci, sx + ci, bottomY - ci - 25);
+    scrollGfx.lineBetween(sx + ci, bottomY - ci, sx + ci + cornerLen, bottomY - ci);
+    scrollGfx.lineBetween(sx + ci, bottomY - ci, sx + ci, bottomY - ci - cornerLen);
 
     // ── Title text (ink calligraphy style) ───────────────────────
     this.docTitleText = this.add.text(camW / 2, sy + rollerH + 32, '', {
@@ -961,7 +1004,7 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // ── Document content text (ink on parchment) ─────────────────
-    this.docContentText = this.add.text(camW / 2, sy + rollerH + 125, '', {
+    this.docContentText = this.add.text(camW / 2, sy + rollerH + 100, '', {
       fontSize: '13px',
       color: '#3e2723',          // dark brown ink
       fontFamily: 'Georgia, "Times New Roman", serif',
@@ -1030,7 +1073,7 @@ export class UIScene extends Phaser.Scene {
   private scrollDocumentText(amount: number): void {
     const viewportH = this.docViewportH;
     const textH = this.docContentText.height;
-    
+
     if (textH <= viewportH) {
       this.docContentText.y = this.docContentInitialY;
       return;
@@ -1047,9 +1090,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private openDocumentViewer(def: { id?: string; title: string; content: string; icon: string }): void {
+    this.currentDocumentId = def.id || '';
     this.docTitleText.setText(def.title.toUpperCase());
     this.docContentText.setText(def.content);
-    this.docIconText.setText(def.icon || '📜');
+    this.docIconText.setText(def.icon);
 
     const scrollW = 480;
     const scrollH = 520;
@@ -1059,7 +1103,7 @@ export class UIScene extends Phaser.Scene {
     const sx = (this.cameras.main.width - scrollW) / 2;
     const camCX = this.cameras.main.width / 2;
 
-    if (def.id === 'merged_doc') {
+    if (def.id === 'merged_doc' || !def.icon) {
       this.docIconText.setVisible(false);
       this.docContentText.setOrigin(0.5, 0);
       this.docContentText.setPosition(camCX, sy + rollerH + 60);
@@ -1105,8 +1149,13 @@ export class UIScene extends Phaser.Scene {
     this.documentOverlay.setVisible(false);
     this.documentViewerContainer.setVisible(false);
 
-    // Emit event to resume GameScene physics and update
-    EventBus.emit(GameEvent.GAME_RESUMED);
+    // Check if this is the merged document - if so, show name input
+    if (this.currentDocumentId === 'merged_doc') {
+      this.nameInputContainer.setVisible(true);
+    } else {
+      // Emit event to resume GameScene physics and update
+      EventBus.emit(GameEvent.GAME_RESUMED);
+    }
   }
 
   private onDocumentCollected(data: { id: string; title: string; content: string; icon: string }): void {
@@ -1458,12 +1507,12 @@ export class UIScene extends Phaser.Scene {
     bg.strokeRoundedRect(-110, 0, 220, 70, 6);
 
     // Category badge (Small / Elite / Boss)
-    this.targetCategoryText = this.add.text(-100, 4, 'SMALL', {
+    this.targetCategoryText = this.add.text(-100, 4, 'THƯỜNG', {
       fontSize: '8px', color: '#888888', fontStyle: 'bold',
     });
 
     // Name text
-    this.targetNameText = this.add.text(0, 4, 'Target Name', {
+    this.targetNameText = this.add.text(0, 4, 'Mục tiêu', {
       fontSize: '12px', color: '#ffaaaa', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
@@ -1509,7 +1558,7 @@ export class UIScene extends Phaser.Scene {
     const maxShield = enemy.maxShield ?? 0;
     const shield = enemy.shield ?? 0;
 
-    this.targetNameText.setText(enemy.config?.name || 'Enemy');
+    this.targetNameText.setText(enemy.config?.name || 'Kẻ địch');
 
     // Category badge with color
     const category = enemy.config?.category || 'small';
@@ -1517,7 +1566,7 @@ export class UIScene extends Phaser.Scene {
       small: '#888888', elite: '#f39c12', boss: '#e74c3c',
     };
     const catLabels: Record<string, string> = {
-      small: 'SMALL', elite: '⭐ ELITE', boss: '💀 BOSS',
+      small: 'THƯỜNG', elite: 'TINH ANH', boss: 'HIỆP SĨ CỔ ĐẠI',
     };
     this.targetCategoryText.setText(catLabels[category] || category.toUpperCase());
     this.targetCategoryText.setColor(catColors[category] || '#888888');
@@ -1540,9 +1589,9 @@ export class UIScene extends Phaser.Scene {
         this.targetShieldBarFill.fillStyle(0xf1c40f, 1);
         this.targetShieldBarFill.fillRoundedRect(-95, 48, 190 * shieldPct, 8, 2);
       }
-      this.targetHpText.setText(`HP: ${Math.ceil(currentHp)}/${maxHp} | SHIELD: ${Math.ceil(shield)}/${maxShield}`);
+      this.targetHpText.setText(`Máu: ${Math.ceil(currentHp)}/${maxHp} | Giáp: ${Math.ceil(shield)}/${maxShield}`);
     } else {
-      this.targetHpText.setText(`HP: ${Math.ceil(currentHp)}/${maxHp}`);
+      this.targetHpText.setText(`Máu: ${Math.ceil(currentHp)}/${maxHp}`);
     }
   }
 
@@ -1550,17 +1599,21 @@ export class UIScene extends Phaser.Scene {
     this.tooltipContainer = this.add.container(0, 0).setDepth(200).setVisible(false);
 
     this.tooltipBg = this.add.graphics();
-    // Glassmorphic dark background
-    this.tooltipBg.fillStyle(0x0c0c14, 0.95);
-    this.tooltipBg.fillRoundedRect(0, 0, 200, 110, 6);
-    this.tooltipBg.lineStyle(1.5, 0x4fc3f7, 0.6);
-    this.tooltipBg.strokeRoundedRect(0, 0, 200, 110, 6);
+    // Pixel art styled dark background with glow
+    this.tooltipBg.fillStyle(0x0a0a14, 0.98);
+    this.tooltipBg.fillRoundedRect(0, 0, 300, 200, 4);
+    this.tooltipBg.lineStyle(2, 0x4fc3f7, 0.9);
+    this.tooltipBg.strokeRoundedRect(0, 0, 300, 200, 4);
+    // Inner border for depth
+    this.tooltipBg.lineStyle(1, 0x4fc3f7, 0.4);
+    this.tooltipBg.strokeRoundedRect(2, 2, 296, 196, 3);
 
     this.tooltipText = this.add.text(10, 10, '', {
-      fontSize: '11px',
+      fontSize: '16px',
       color: '#ffffff',
-      lineSpacing: 4,
-      fontFamily: 'Arial',
+      lineSpacing: 2,
+      wordWrap: { width: 280 },
+      fontFamily: 'VT323, monospace',
     });
 
     this.tooltipContainer.add([this.tooltipBg, this.tooltipText]);
@@ -1576,8 +1629,8 @@ export class UIScene extends Phaser.Scene {
   // ═══════════════════════════════════════════════════════════════════
 
   private createTabPanel(camW: number, camH: number): void {
-    const panelW = 280;
-    const panelH = 340;
+    const panelW = 320;
+    const panelH = 360;
     const px = (camW - panelW) / 2;
     const py = (camH - panelH) / 2;
 
@@ -1592,21 +1645,25 @@ export class UIScene extends Phaser.Scene {
 
     // Title
     const title = this.add.text(camW / 2, py + 18, 'THỐNG KÊ NHÂN VẬT', {
-      fontSize: '16px', color: '#e74c3c', fontStyle: 'bold',
+      fontSize: '14px', color: '#e74c3c', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     // Stats text lines
-    const lineHeight = 22;
-    const startY = py + 48;
+    const lineHeight = 18;
+    const startY = py + 45;
     const labels = [
-      '── CHỈ SỐ ──',
+      'CHỈ SỐ CƠ BẢN ',
       '',   // Level
       '',   // HP
       '',   // MP
       '',   // ATK
       '',   // DEF
       '',   // separator
-      '── CHIẾN ĐẤU ──',
+      'VŨ KHÍ',
+      '',   // Weapon name
+      '',   // Weapon range/damage
+      '',   // separator
+      'CHIẾN ĐẤU',
       '',   // Total Kills
       '',   // Slime kills
       '',   // Bat kills
@@ -1617,10 +1674,11 @@ export class UIScene extends Phaser.Scene {
     this.tabStatsTexts = [];
     for (let i = 0; i < labels.length; i++) {
       const isHeader = labels[i].startsWith('──');
-      const t = this.add.text(px + 20, startY + i * lineHeight, labels[i], {
-        fontSize: isHeader ? '11px' : '13px',
-        color: isHeader ? '#888888' : '#cccccc',
+      const t = this.add.text(px + 18, startY + i * lineHeight, labels[i], {
+        fontSize: isHeader ? '10px' : '11px',
+        color: isHeader ? '#999999' : '#dddddd',
         fontStyle: isHeader ? 'bold' : 'normal',
+        fontFamily: 'Arial',
       });
       this.tabStatsTexts.push(t);
     }
@@ -1630,24 +1688,38 @@ export class UIScene extends Phaser.Scene {
 
   private updateTabPanel(): void {
     const t = this.tabStatsTexts;
-    if (t.length < 13) return;
+    if (t.length < 17) return;
 
     // Stats section
-    t[0].setText('── CHỈ SỐ ──');
-    t[1].setText(`  Cấp độ: ${this.playerLevel}`);
-    t[2].setText(`  Máu (HP): ${this.currentHp} / ${this.maxHp}`);
-    t[3].setText(`  Năng lượng (MP): ${this.currentMp} / ${this.maxMp}`);
-    t[4].setText(`  Sát thương (ATK): ${10 + (this.playerLevel - 1) * 2}`);
-    t[5].setText(`  Phòng thủ (DEF): ${3 + (this.playerLevel - 1) * 1}`);
+    t[0].setText('CHỈ SỐ CƠ BẢN');
+    t[1].setText(`Cấp độ: ${this.playerLevel}`);
+    t[2].setText(`HP: ${this.currentHp}/${this.maxHp}`);
+    t[3].setText(`MP: ${this.currentMp}/${this.maxMp}`);
+    t[4].setText(`ATK: ${10 + (this.playerLevel - 1) * 2}`);
+    t[5].setText(`DEF: ${3 + (this.playerLevel - 1) * 1}`);
     t[6].setText('');
 
+    // Weapon section
+    t[7].setText('VŨ KHÍ');
+    if (this.weaponType === 'melee') {
+      let range = '40px';
+      if (this.playerLevel >= 5) range = '85px';
+      if (this.playerLevel >= 10) range = '135px';
+      t[8].setText(`Kiếm | Tầm: ${range}`);
+      t[9].setText(`HP: ${this.maxHp}`);
+    } else {
+      t[8].setText(`Súng | Tầm: 750px`);
+      t[9].setText(`HP: ${this.maxHp}`);
+    }
+    t[10].setText('');
+
     // Combat section
-    t[7].setText('── CHIẾN ĐẤU ──');
-    t[8].setText(`  Tổng hạ gục: ${this.killCount}`);
-    t[9].setText(`  Slime: ${this.killsByType.get('slime') ?? 0}`);
-    t[10].setText(`  Dơi: ${this.killsByType.get('bat') ?? 0}`);
-    t[11].setText(`  Goblin: ${this.killsByType.get('goblin') ?? 0}`);
-    t[12].setText(`  Điểm số: ${this.totalScore}`);
+    t[11].setText('ĐÃ GIẾT ĐƯỢC');
+    t[12].setText(`Tổng hạ gục: ${this.killCount}`);
+    t[13].setText(`Slime: ${this.killsByType.get('slime') ?? 0}`);
+    t[14].setText(`Dơi: ${this.killsByType.get('bat') ?? 0}`);
+    t[15].setText(`Goblin: ${this.killsByType.get('goblin') ?? 0}`);
+    t[16].setText(`Điểm: ${this.totalScore}`);
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -1670,8 +1742,8 @@ export class UIScene extends Phaser.Scene {
     bg.strokeRoundedRect(x - barW / 2 - 10, y - 28, barW + 20, 55, 6);
 
     // Boss name
-    this.bossNameText = this.add.text(x, y - 18, '💀 BOSS', {
-      fontSize: '14px', color: '#e74c3c', fontStyle: 'bold',
+    this.bossNameText = this.add.text(x, y - 18, 'HIỆP SĨ CỔ ĐẠI', {
+      fontSize: '16px', color: '#e74c3c', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5);
 
@@ -1685,7 +1757,7 @@ export class UIScene extends Phaser.Scene {
 
     // HP percentage text
     this.bossHpPctText = this.add.text(x, y + barH / 2, '100%', {
-      fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+      fontSize: '18px', color: '#ffffff', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5);
 
@@ -1701,7 +1773,7 @@ export class UIScene extends Phaser.Scene {
     const y = 38;
     const x = camW / 2;
 
-    this.bossNameText.setText(`💀 ${name}`);
+    this.bossNameText.setText(`${name}`);
 
     const pct = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
 
@@ -1728,60 +1800,109 @@ export class UIScene extends Phaser.Scene {
 
     if (id === 'weapon') {
       if (this.weaponType === 'melee') {
-        content = `⚔ KIẾM SẮT\n` +
-                  `• Sát thương: 15 (+ ATK scaling)\n` +
-                  `• Mana tiêu hao: 0\n` +
-                  `• Phạm vi: Cận chiến\n` +
-                  `• Loại: Đa mục tiêu`;
+        let melee_range = '40px';
+        if (this.playerLevel >= 5) melee_range = '85px';
+        if (this.playerLevel >= 10) melee_range = '135px';
+        content = `Iron Sword\n` +
+          `LV ${this.playerLevel}\n` +
+          `─────────────\n` +
+          `Sát thương 15\n` +
+          `Tầm      ${melee_range}\n` +
+          `HP       ${this.maxHp}`;
       } else {
-        content = `🔫 SÚNG LỤC\n` +
-                  `• Sát thương: 10\n` +
-                  `• Đạn: 10 viên / băng\n` +
-                  `• Chí mạng: 40%\n` +
-                  `• Phạm vi: Tầm xa (500px)\n` +
-                  `• Loại: Đơn mục tiêu`;
+        content = `Light Gun\n` +
+          `LV ${this.playerLevel}\n` +
+          `─────────────\n` +
+          `Sát thương 10\n` +
+          `Đạn    10/băng\n` +
+          `Tầm      750px`;
       }
     } else if (id === 'fireball') {
       if (this.weaponType === 'melee') {
-        content = `🔥 CẦU LỬA (Q)\n` +
-                  `• Sát thương: 40\n` +
-                  `• Mana tiêu hao: 15 MP\n` +
-                  `• Phạm vi: Tầm xa\n` +
-                  `• Loại: Đơn mục tiêu`;
+        let dmg = 40;
+        let cost = 15;
+        let radius = this.playerLevel >= 9 ? '300px' : '200px';
+        if (this.playerLevel >= 9) dmg = 60;
+        if (this.playerLevel >= 10) cost = 10;
+        content = `CẦU LỬA (Q)\n` +
+          `LV ${this.playerLevel}\n` +
+          `─────────────\n` +
+          `Sát thương ${dmg}\n` +
+          `Chi phí   ${cost} MP\n` +
+          `Phạm vi   ${radius}\n` +
+          `Hồi       3.0s`;
+        if (this.playerLevel >= 10) {
+          content += `\n[LV10] Thiêu`;
+        }
       } else {
-        content = `⚡ CHOÁNG (Q)\n` +
-                  `• Sát thương: 20\n` +
-                  `• Mana tiêu hao: 10 MP\n` +
-                  `• Choáng: 1.5 giây\n` +
-                  `• Phạm vi: AoE (120px)\n` +
-                  `• Loại: Đa mục tiêu`;
+        let dmg = 20;
+        let radius = this.playerLevel >= 9 ? '300px' : '200px';
+        if (this.playerLevel >= 9) dmg = 25;
+        content = `CHOÁNG (Q)\n` +
+          `LV ${this.playerLevel}\n` +
+          `─────────────\n` +
+          `Sát thương ${dmg}\n` +
+          `Chi phí   10 MP\n` +
+          `Phạm vi   ${radius}\n` +
+          `Choáng    1.5s`;
       }
     } else if (id === 'slow') {
-      content = `❄ BĂNG PHONG (E)\n` +
-                `• Sát thương: 0 (Làm chậm 70%)\n` +
-                `• Mana tiêu hao: 20 MP\n` +
-                `• Phạm vi: AoE (180px)\n` +
-                `• Loại: Đa mục tiêu`;
+      let slowPct = '70%';
+      if (this.playerLevel >= 10) slowPct = '100%(Treo)';
+      content = `BĂNG PHONG (E)\n` +
+        `LV ${this.playerLevel}\n` +
+        `─────────────\n` +
+        `Làm chậm  ${slowPct}\n` +
+        `Chi phí   20 MP\n` +
+        `Phạm vi   300px\n` +
+        `Thời gian 4-5s`;
+      if (this.playerLevel >= 9) {
+        content += `\n[LV9] Hồi HP`;
+      }
     } else if (id === 'dash') {
-      const dashCd = this.weaponType === 'melee' ? '1.0' : '0.75';
-      content = `⚡ LƯỚT NHANH (Shift)\n` +
-                `• Sát thương: 0 (Bất tử khi lướt)\n` +
-                `• Mana tiêu hao: 0 MP\n` +
-                `• Hồi chiêu: ${dashCd}s\n` +
-                `• Loại: Bản thân`;
+      const dashCd = this.weaponType === 'melee' ? '1.0s' : '0.75s';
+      content = `LƯỚT NHANH\n` +
+        `(Shift)\n` +
+        `─────────────\n` +
+        `Miễn sát\n` +
+        `Chi phí   0 MP\n` +
+        `Hồi chiêu ${dashCd}\n` +
+        `Hiệu ứng  Bất tử`;
     } else if (id === 'ultimate') {
-      content = `💥 BỘC PHÁ (F)\n` +
-                `• Sát thương: 80\n` +
-                `• Mana tiêu hao: 40 MP\n` +
-                `• Phạm vi: AoE (250px)\n` +
-                `• Loại: Đa mục tiêu`;
+      let dmg = 80;
+      let cd = '20s';
+      if (this.playerLevel >= 9) dmg = 100;
+      if (this.playerLevel >= 10) {
+        dmg = 120;
+        cd = '30s';
+      }
+      content = `BỘC PHÁ (F)\n` +
+        `LV ${this.playerLevel}\n` +
+        `─────────────\n` +
+        `Sát thương ${dmg}\n` +
+        `Chi phí   40 MP\n` +
+        `Phạm vi   300px\n` +
+        `Hồi chiêu ${cd}`;
     }
 
     this.tooltipText.setText(content);
 
+    // Measure text and scale tooltip accordingly
+    const bounds = this.tooltipText.getBounds();
+    const tooltipWidth = Math.min(Math.max(bounds.width + 20, 160), 300);
+    const tooltipHeight = Math.max(bounds.height + 18, 70);
+
+    // Redraw background with dynamic size
+    this.tooltipBg.clear();
+    this.tooltipBg.fillStyle(0x0a0a14, 0.98);
+    this.tooltipBg.fillRoundedRect(0, 0, tooltipWidth, tooltipHeight, 4);
+    this.tooltipBg.lineStyle(2, 0x4fc3f7, 0.9);
+    this.tooltipBg.strokeRoundedRect(0, 0, tooltipWidth, tooltipHeight, 4);
+    // Inner border for depth
+    this.tooltipBg.lineStyle(1, 0x4fc3f7, 0.4);
+    this.tooltipBg.strokeRoundedRect(2, 2, tooltipWidth - 4, tooltipHeight - 4, 3);
+
     // Adjust position to stay on screen
-    const tooltipWidth = 200;
-    const tooltipHeight = 110;
     let tx = x + 15;
     let ty = y - tooltipHeight - 15;
 
@@ -1832,7 +1953,7 @@ export class UIScene extends Phaser.Scene {
   private onLevelUp(data: { level: number }): void {
     if (!this.sys.isActive()) return;
     this.playerLevel = data.level;
-    this.levelText.setText(`LEVEL ${this.playerLevel}`);
+    this.levelText.setText(`CẤP ${this.playerLevel}`);
     this.cameras.main.flash(300, 255, 215, 0, false);
 
     if (this.playerLevel >= 5) this.unlockAchievement('reach_lvl_5');
@@ -1994,12 +2115,12 @@ export class UIScene extends Phaser.Scene {
 
   public hasActiveOverlay(): boolean {
     return this.isSettingsOpen() ||
-           this.isAchievementsOpen() ||
-           this.isDocumentViewerOpen() ||
-           this.isPortfolioOpen() ||
-           this.isInventoryOpen() ||
-           this.isTutorialOpen() ||
-           this.tabOpen;
+      this.isAchievementsOpen() ||
+      this.isDocumentViewerOpen() ||
+      this.isPortfolioOpen() ||
+      this.isInventoryOpen() ||
+      this.isTutorialOpen() ||
+      this.tabOpen;
   }
 
   private updateSkillSlot(skillId: string, progress: number, remainingMs: number): void {
@@ -2038,8 +2159,8 @@ export class UIScene extends Phaser.Scene {
     }
 
     if (this.weaponType === 'ranged') {
-      this.ammoText.setText(`Ammo: ${this.magazine} / ${this.maxMagazine}`);
-      this.reloadText.setText(this.isReloading ? 'RELOADING...' : (this.magazine === 0 ? 'Press R to reload' : ''));
+      this.ammoText.setText(`Đạn: ${this.magazine} / ${this.maxMagazine}`);
+      this.reloadText.setText(this.isReloading ? 'ĐANG NẠP...' : (this.magazine === 0 ? 'Nhấn R để nạp đạn' : ''));
     } else {
       this.ammoText.setText('');
       this.reloadText.setText('');
@@ -2179,7 +2300,7 @@ export class UIScene extends Phaser.Scene {
         const playerName = inputText.text.trim() || defaultName;
         LeaderboardHelper.saveEntry(playerName, this.playerLevel, this.totalScore, this.killCount);
         this.gameOverContainer.setVisible(false);
-        
+
         // If boss is defeated, continue playing; otherwise, exit to menu
         if (!this.bossDefeated) {
           // Exit to main menu
@@ -2190,7 +2311,7 @@ export class UIScene extends Phaser.Scene {
     // Keyboard input handling
     this.input.keyboard!.on('keydown', (event: KeyboardEvent) => {
       if (!isEditing) return;
-      
+
       if (event.key === 'Enter') {
         isEditing = false;
         const playerName = inputText.text.trim() || defaultName;
@@ -2224,6 +2345,184 @@ export class UIScene extends Phaser.Scene {
   private onBossSlain(): void {
     if (!this.sys.isActive()) return;
     this.bossDefeated = true;
+  }
+
+  private createNameInputPanel(camW: number, camH: number): void {
+    const panelW = 360;
+    const panelH = 280;
+    const px = (camW - panelW) / 2;
+    const py = (camH - panelH) / 2;
+
+    this.nameInputContainer = this.add.container(0, 0).setDepth(100).setVisible(false);
+
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x0d0d1a, 0.85);
+    overlay.fillRect(0, 0, camW, camH);
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x0a0a14, 0.95);
+    panel.fillRoundedRect(px, py, panelW, panelH, 10);
+    panel.lineStyle(2, 0x4fc3f7, 0.6);
+    panel.strokeRoundedRect(px, py, panelW, panelH, 10);
+
+    const title = this.add.text(camW / 2, py + 30, 'CHIẾN THẮNG!', {
+      fontSize: '20px', color: '#4fc3f7', fontStyle: 'bold',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5);
+
+    const namePrompt = this.add.text(camW / 2, py + 70, 'NHẬP TÊN CỦA BẠN:', {
+      fontSize: '12px', color: '#f39c12', fontStyle: 'bold',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+    }).setOrigin(0.5);
+
+    const inputBg = this.add.graphics();
+    inputBg.fillStyle(0x1a1a2e, 0.9);
+    inputBg.fillRect(px + 30, py + 100, panelW - 60, 38);
+    inputBg.lineStyle(2, 0x4fc3f7, 0.8);
+    inputBg.strokeRect(px + 30, py + 100, panelW - 60, 38);
+
+    const inputText = this.add.text(px + 45, py + 119, '', {
+      fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+    }).setOrigin(0, 0.5);
+
+    const defaultName = LeaderboardHelper.getLastName();
+    inputText.setText(defaultName);
+    let isEditing = true;
+
+    const cursorText = this.add.text(px + 45 + inputText.width + 4, py + 119, '▌', {
+      fontSize: '14px', color: '#4fc3f7',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+    }).setOrigin(0, 0.5);
+
+    this.tweens.add({
+      targets: cursorText,
+      alpha: 0.3,
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    const instructionText = this.add.text(camW / 2, py + 160, 'NHẤN ENTER ĐỂ TIẾP TỤC', {
+      fontSize: '10px', color: '#888888', fontStyle: 'bold',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+    }).setOrigin(0.5);
+
+    const btnStyle = {
+      fontSize: '12px', color: '#cccccc', fontStyle: 'bold',
+      backgroundColor: '#1a4a4a', padding: { x: 12, y: 8 },
+      fixedWidth: 150, align: 'center',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+    };
+
+    const btnConfirm = this.add.text(camW / 2, py + 220, 'XÁC NHẬN', btnStyle)
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => btnConfirm.setColor('#ffffff').setStyle({ backgroundColor: '#4fc3f7' }))
+      .on('pointerout', () => btnConfirm.setColor('#cccccc').setStyle({ backgroundColor: '#1a4a4a' }))
+      .on('pointerdown', () => {
+        if (!isEditing) return;
+        AudioManager.getInstance().playSFX('ui-click');
+        isEditing = false;
+        const playerName = inputText.text.trim() || defaultName;
+        LeaderboardHelper.saveEntry(playerName, this.playerLevel, this.totalScore, this.killCount, this.bossDefeated);
+        this.nameInputContainer.setVisible(false);
+        this.showVictoryScreen();
+      });
+
+    this.input.keyboard!.on('keydown', (event: KeyboardEvent) => {
+      if (!isEditing || !this.nameInputContainer.visible) return;
+
+      if (event.key === 'Enter') {
+        isEditing = false;
+        const playerName = inputText.text.trim() || defaultName;
+        LeaderboardHelper.saveEntry(playerName, this.playerLevel, this.totalScore, this.killCount, this.bossDefeated);
+        this.nameInputContainer.setVisible(false);
+        this.showVictoryScreen();
+      } else if (event.key === 'Backspace') {
+        inputText.setText(inputText.text.slice(0, -1));
+        cursorText.x = px + 45 + inputText.width + 4;
+      } else if (event.key.length === 1 && inputText.text.length < 20) {
+        inputText.setText(inputText.text + event.key.toUpperCase());
+        cursorText.x = px + 45 + inputText.width + 4;
+      }
+    });
+
+    this.nameInputContainer.add([overlay, panel, title, namePrompt, inputBg, inputText, cursorText, instructionText, btnConfirm]);
+  }
+
+  private createVictoryPanel(camW: number, camH: number): void {
+    const panelW = 440;
+    const panelH = 280;
+    const px = (camW - panelW) / 2;
+    const py = (camH - panelH) / 2;
+
+    this.victoryContainer = this.add.container(0, 0).setDepth(100).setVisible(false);
+
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x0d1a0d, 0.85);
+    overlay.fillRect(0, 0, camW, camH);
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x0a140a, 0.95);
+    panel.fillRoundedRect(px, py, panelW, panelH, 10);
+    panel.lineStyle(3, 0x4caf50, 0.7);
+    panel.strokeRoundedRect(px, py, panelW, panelH, 10);
+
+    const victoryText = this.add.text(camW / 2, py + 40, 'CHIẾN THẮNG', {
+      fontSize: '18px', color: '#4caf50', fontStyle: 'bold',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5);
+
+    const messageText = this.add.text(camW / 2, py + 100, 'BẠN ĐÃ THẮNG TRÒ CHƠI, XIN CHÚC MỪNG!', {
+      fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+      align: 'center',
+      wordWrap: { width: panelW - 40 },
+    }).setOrigin(0.5);
+
+    const statsText = this.add.text(camW / 2, py + 160, `CẤP ĐỘ: ${this.playerLevel} | ĐIỂM SỐ: ${this.totalScore} | HẠ GỤC: ${this.killCount}`, {
+      fontSize: '16px', color: '#a8d5a8', fontStyle: 'bold',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+      align: 'center',
+      wordWrap: { width: panelW - 40 },
+    }).setOrigin(0.5);
+
+    const btnStyle = {
+      fontSize: '12px', color: '#cccccc', fontStyle: 'bold',
+      backgroundColor: '#1a4a1a', padding: { x: 16, y: 10 },
+      fixedWidth: 180, align: 'center',
+      fontFamily: 'Press Start 2P, VT323, monospace',
+    };
+
+    const btnConfirm = this.add.text(camW / 2, py + 230, 'XÁC NHẬN', btnStyle)
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => btnConfirm.setColor('#ffffff').setStyle({ backgroundColor: '#4caf50' }))
+      .on('pointerout', () => btnConfirm.setColor('#cccccc').setStyle({ backgroundColor: '#1a4a1a' }))
+      .on('pointerdown', () => {
+        AudioManager.getInstance().playSFX('ui-click');
+        this.victoryContainer.setVisible(false);
+        this.exitToMenu();
+      });
+
+    this.input.keyboard!.on('keydown', (event: KeyboardEvent) => {
+      if (!this.victoryContainer.visible) return;
+
+      if (event.key === 'Enter') {
+        AudioManager.getInstance().playSFX('ui-click');
+        this.victoryContainer.setVisible(false);
+        this.exitToMenu();
+      }
+    });
+
+    this.victoryContainer.add([overlay, panel, victoryText, messageText, statsText, btnConfirm]);
+  }
+
+  private showVictoryScreen(): void {
+    this.victoryContainer.setVisible(true);
   }
 
   private onEnemySelected(enemy: Enemy | null): void {
@@ -2284,7 +2583,7 @@ export class UIScene extends Phaser.Scene {
         backgroundColor: '#161626', padding: { x: 8, y: 8 },
         fixedWidth: tabW, align: 'center',
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      
+
       btn.on('pointerover', () => { if (this.activePortfolioTab !== index) btn.setColor('#ffffff'); });
       btn.on('pointerout', () => { if (this.activePortfolioTab !== index) btn.setColor('#888888'); });
       btn.on('pointerdown', () => {
@@ -2300,7 +2599,7 @@ export class UIScene extends Phaser.Scene {
 
     // ── Tab 0: Profile ───────────────────────────────────────────────
     const tab0Container = this.add.container(0, 0);
-    
+
     const nameText = this.add.text(px + 30, contentY, 'Họ và tên: Trọng (Trần Văn Trọng)', {
       ...textStyle, fontStyle: 'bold', color: '#f1c40f', fontSize: '13px'
     });
@@ -2370,14 +2669,14 @@ export class UIScene extends Phaser.Scene {
     btnVictoryExit.on('pointerout', () => btnVictoryExit.setColor('#f1c40f').setStyle({ backgroundColor: '#221a0f' }));
     btnVictoryExit.on('pointerdown', () => {
       AudioManager.getInstance().playSFX('ui-click');
-      
+
       this.closePortfolioViewer();
       this.exitToMenu();
     });
 
     // Add all to container
     this.portfolioViewerContainer.add([
-      panel, mainTitle, ...this.portfolioTabButtons, 
+      panel, mainTitle, ...this.portfolioTabButtons,
       tab0Container, tab1Container, tab2Container, tab3Container, btnVictoryExit
     ]);
 

@@ -34,24 +34,24 @@ export class EffectsSystem {
     g.setPosition(cx, cy);
     g.setRotation(angle);
 
-    const radius = playerLevel >= 5 ? 100 : 70;
-    const startAngle = -80;
-    const endAngle = 80;
+    const radius = (playerLevel >= 5 ? 90 : 62) + (playerLevel >= 10 ? 50 : 0);
+    const startAngle = -70;
+    const endAngle = 70;
 
-    // Draw initial slash arc - BRIGHTER
-    g.lineStyle(3, 0xffffff, 1.0);
+    // Draw initial slash arc
+    g.lineStyle(2, 0xffffff, 0.72);
     g.beginPath();
     g.arc(0, 0, radius, Phaser.Math.DegToRad(startAngle), Phaser.Math.DegToRad(endAngle), false);
     g.strokePath();
 
-    // Inner bright glow - LARGER
-    g.lineStyle(4, 0x88ddff, 0.8);
+    // Inner glow
+    g.lineStyle(3, 0x88ddff, 0.55);
     g.beginPath();
     g.arc(0, 0, radius - 3, Phaser.Math.DegToRad(startAngle), Phaser.Math.DegToRad(endAngle), false);
     g.strokePath();
 
     // Second layer for depth
-    g.lineStyle(2, 0x44ccff, 0.6);
+    g.lineStyle(1.5, 0x44ccff, 0.38);
     g.beginPath();
     g.arc(0, 0, radius - 8, Phaser.Math.DegToRad(startAngle), Phaser.Math.DegToRad(endAngle), false);
     g.strokePath();
@@ -59,24 +59,24 @@ export class EffectsSystem {
     this.scene.tweens.add({
       targets: g,
       alpha: 0,
-      scaleX: 1.5,
-      scaleY: 1.3,
-      duration: 250,
+      scaleX: 1.3,
+      scaleY: 1.18,
+      duration: 220,
       ease: 'Quad.easeOut',
       onComplete: () => g.destroy(),
     });
 
-    // Spark particles - MORE AND BRIGHTER
-    for (let i = 0; i < 12; i++) {
+    // Spark particles
+    for (let i = 0; i < 8; i++) {
       const sparkAngle = angle + Phaser.Math.DegToRad(Phaser.Math.Between(startAngle, endAngle));
       const px = cx + Math.cos(sparkAngle) * (radius + 10);
       const py = cy + Math.sin(sparkAngle) * (radius + 10);
       const sparkColor = Phaser.Math.RND.pick([0xffffff, 0x88ddff, 0xaaeeee]);
-      const spark = this.scene.add.circle(px, py, Phaser.Math.Between(2, 4), sparkColor, 1.0).setDepth(51);
+      const spark = this.scene.add.circle(px, py, Phaser.Math.Between(1, 3), sparkColor, 0.72).setDepth(51);
       this.scene.tweens.add({
         targets: spark,
-        x: px + Phaser.Math.Between(-25, 25) * Math.cos(angle),
-        y: py + Phaser.Math.Between(-20, 20) * Math.sin(angle),
+        x: px + Phaser.Math.Between(-18, 18) * Math.cos(angle),
+        y: py + Phaser.Math.Between(-14, 14) * Math.sin(angle),
         alpha: 0,
         scale: 0.1,
         duration: Phaser.Math.Between(200, 400),

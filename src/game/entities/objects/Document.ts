@@ -27,11 +27,11 @@ export const DOCUMENT_REGISTRY: Record<string, DocumentDef> = {
     id: 'doc_1',
     title: 'Mảnh Giấy 1',
     content: `THÔNG TIN CÁ NHÂN & HỌC VẤN
-- Họ và Tên: TRẦN VĂN TRỌNG
+- Họ và Tên: Trần Văn Trọng
 - Vai trò: Sinh Viên Năm Cuối
 - Học lực: Xếp loại Khá
 - GPA Tích Lũy: 7.4 / 10`,
-    icon: '📄',
+    icon: '',
   },
   doc_2: {
     id: 'doc_2',
@@ -40,7 +40,7 @@ export const DOCUMENT_REGISTRY: Record<string, DocumentDef> = {
 - Số điện thoại: 0971028904
 - Địa chỉ: Đường 42, TP. Thủ Đức
 - Email: email.tranvantrong.2015@gmail.com`,
-    icon: '📄',
+    icon: '',
   },
   doc_3: {
     id: 'doc_3',
@@ -50,16 +50,16 @@ export const DOCUMENT_REGISTRY: Record<string, DocumentDef> = {
 - Framework: Laravel
 - Công nghệ & Công cụ: Git, GitHub
 - AI Agents: DeepSeek, Claude, ChatGPT, Gemini, V0.app, Grok`,
-    icon: '📄',
+    icon: '',
   },
   merged_doc: {
     id: 'merged_doc',
     title: 'Hồ Sơ Hoàn Chỉnh',
     content: `HỒ SƠ CÁ NHÂN & NĂNG LỰC CHUYÊN MÔN
-Ứng viên: TRẦN VĂN TRỌNG
+Ứng viên: Trần Văn Trọng
 
 1. THÔNG TIN CÁ NHÂN & HỌC VẤN
-- Họ và Tên: TRẦN VĂN TRỌNG
+- Họ và Tên: Trần Văn Trọng
 - Vai trò: Sinh Viên Năm Cuối
 - Học lực: Xếp loại Khá (GPA: 7.4/10)
 
@@ -97,7 +97,17 @@ export class Document extends Phaser.GameObjects.Container {
     this.docDef = DOCUMENT_REGISTRY[docId];
 
     scene.add.existing(this);
+    scene.physics.add.existing(this);
     this.setDepth(5);
+
+    // Enable gravity and physics
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setAllowGravity(true);
+      body.setBounce(0.3, 0.3);
+      body.setCollideWorldBounds(true);
+      body.setDrag(0.95, 0);
+    }
 
     // Glow circle underneath
     this.glowGraphics = scene.add.graphics();
@@ -115,15 +125,23 @@ export class Document extends Phaser.GameObjects.Container {
     }
     this.iconSprite.setOrigin(0.5).setDepth(6);
 
-    // Float animation
-    scene.tweens.add({
-      targets: this.iconSprite,
-      y: y - 12,
-      duration: 1200,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
+    // Float animation starts after landing
+    let hasLanded = false;
+    const checkLanding = () => {
+      if (!hasLanded && body && Math.abs(body.velocity.y) < 10) {
+        hasLanded = true;
+        scene.tweens.add({
+          targets: this.iconSprite,
+          y: y - 12,
+          duration: 1200,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        });
+      }
+    };
+
+    scene.events.on('update', checkLanding);
 
     // Glow pulse
     scene.tweens.add({

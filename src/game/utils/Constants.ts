@@ -32,22 +32,23 @@ export const GUN_RELOAD_TIME = 1200;
 // ── Skills ─────────────────────────────────────────────────────────────
 export const SKILL_FIREBALL_DAMAGE = 40;
 export const SKILL_FIREBALL_SPEED = 350;
+export const SKILL_FIREBALL_RADIUS = 300;
 export const SKILL_FIREBALL_MP_COST = 15;
 export const SKILL_FIREBALL_COOLDOWN = 3000;
 
-export const SKILL_SLOW_RADIUS = 180;
+export const SKILL_SLOW_RADIUS = 300;
 export const SKILL_SLOW_DURATION = 4000;
 export const SKILL_SLOW_FACTOR = 0.3;
 export const SKILL_SLOW_MP_COST = 20;
 export const SKILL_SLOW_COOLDOWN = 8000;
 
 export const SKILL_ULTIMATE_DAMAGE = 80;
-export const SKILL_ULTIMATE_RADIUS = 250;
+export const SKILL_ULTIMATE_RADIUS = 300;
 export const SKILL_ULTIMATE_MP_COST = 40;
 export const SKILL_ULTIMATE_COOLDOWN = 20000;
 
 export const SKILL_STUN_BLAST_DAMAGE = 20;
-export const SKILL_STUN_BLAST_RADIUS = 120;
+export const SKILL_STUN_BLAST_RADIUS = 200;
 export const SKILL_STUN_BLAST_STUN_DURATION = 1500;
 export const SKILL_STUN_BLAST_MP_COST = 10;
 export const SKILL_STUN_BLAST_COOLDOWN = 5000;

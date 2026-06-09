@@ -3,6 +3,7 @@ export interface LeaderboardEntry {
   level: number;
   score: number;
   kills: number;
+  bossKilled: boolean;
   date: string;
 }
 
@@ -28,11 +29,11 @@ export const LeaderboardHelper = {
   },
 
   /**
-   * Save a new leaderboard entry, sort, and keep only the top 5.
+   * Save a new leaderboard entry, sort by boss kills first, then score, and keep only the top 5.
    */
-  saveEntry(name: string, level: number, score: number, kills: number): void {
+  saveEntry(name: string, level: number, score: number, kills: number, bossKilled: boolean = false): void {
     const trimmedName = name.trim() || 'Anh Hùng';
-    
+
     // Save last used name
     try {
       localStorage.setItem(LAST_NAME_KEY, trimmedName);
@@ -41,7 +42,7 @@ export const LeaderboardHelper = {
     }
 
     const entries = this.getEntries();
-    
+
     // Format date as DD/MM/YYYY HH:mm
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
@@ -56,13 +57,17 @@ export const LeaderboardHelper = {
       level,
       score,
       kills,
+      bossKilled,
       date: dateStr,
     };
 
     entries.push(newEntry);
 
-    // Sort by score descending, then kills descending
+    // Sort by boss killed (true first), then score descending, then kills descending
     entries.sort((a, b) => {
+      if (b.bossKilled !== a.bossKilled) {
+        return b.bossKilled ? 1 : -1;
+      }
       if (b.score !== a.score) {
         return b.score - a.score;
       }

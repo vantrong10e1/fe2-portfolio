@@ -399,7 +399,7 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
               }}>
                 <div>
                   <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '9px', color: '#ffffff' }}>CHẾ ĐỘ TOÀN MÀN HÌNH</div>
-                  <div style={{ fontSize: '18px', color: '#a0a0b0', marginTop: '6px' }}>Bật chế độ fullscreen để tăng trải nghiệm nhập vai</div>
+                  <div style={{ fontSize: '18px', color: '#a0a0b0', marginTop: '6px' }}>Bật chế độ toàn màn hình để tăng trải nghiệm nhập vai</div>
                 </div>
                 <input
                   type="checkbox"
@@ -457,13 +457,13 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
 
               <div style={{ borderTop: '2px dashed rgba(255,255,255,0.1)', paddingTop: '16px' }}>
                 <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '9px', color: '#4fc3f7', marginBottom: '14px' }}>
-                  ♿ HỖ TRỢ TIẾP CẬN (ACCESSIBILITY)
+                  ♿ HỖ TRỢ TIẾP CẬN
                 </div>
                 
                 {/* UI Scale */}
                 <div style={{ marginBottom: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: "'Press Start 2P', monospace", fontSize: '9px', marginBottom: '8px' }}>
-                    <span style={{ color: '#ffffff' }}>TỶ LỆ GIAO DIỆN (UI SCALE)</span>
+                    <span style={{ color: '#ffffff' }}>TỶ LỆ GIAO DIỆN</span>
                     <span style={{ color: '#4fc3f7' }}>{Math.round(settings.uiScale * 100)}%</span>
                   </div>
                   <input
@@ -483,7 +483,7 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                 {/* Font Scale */}
                 <div style={{ marginBottom: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: "'Press Start 2P', monospace", fontSize: '9px', marginBottom: '8px' }}>
-                    <span style={{ color: '#ffffff' }}>TỶ LỆ CHỮ (FONT SCALE)</span>
+                    <span style={{ color: '#ffffff' }}>TỶ LỆ CHỮ</span>
                     <span style={{ color: '#4fc3f7' }}>{Math.round(settings.fontScale * 100)}%</span>
                   </div>
                   <input
@@ -637,7 +637,7 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                       {key === 'attack' && 'Tấn công / Bắn'}
                       {key === 'skill1' && 'Chiêu 1 (Q)'}
                       {key === 'skill2' && 'Chiêu 2 (E)'}
-                      {key === 'dash' && 'Lướt nhanh (Dash)'}
+                      {key === 'dash' && 'Lướt nhanh'}
                       {key === 'ultimate' && 'Chiêu cuối (F)'}
                       {key === 'inventory' && 'Túi đồ (B)'}
                       {key === 'interact' && 'Tương tác (G)'}
@@ -687,15 +687,15 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <kbd className="pixel-kbd">SPACE</kbd>
-                    <span style={{ color: '#ffffff' }}>Nhảy lên (Jump)</span>
+                    <span style={{ color: '#ffffff' }}>Nhảy lên</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <kbd className="pixel-kbd">SHIFT</kbd>
-                    <span style={{ color: '#ffffff' }}>Lướt nhanh (Dash)</span>
+                    <span style={{ color: '#ffffff' }}>Lướt nhanh</span>
                   </div>
                 </div>
                 <p style={{ fontSize: '16px', color: '#4fc3f7', marginTop: '12px', fontStyle: 'italic', marginLeft: 0, marginRight: 0 }}>
-                  * Sử dụng Lướt nhanh (Dash) để né sát thương từ quái và vượt qua các vực sâu hiểm trở!
+                  * Sử dụng lướt nhanh để né sát thương từ quái và vượt qua các vực sâu hiểm trở!
                 </p>
               </div>
 
@@ -720,7 +720,7 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <kbd className="pixel-kbd">R</kbd>
-                    <span style={{ color: '#ffffff' }}>Nạp đạn Flintlock</span>
+                    <span style={{ color: '#ffffff' }}>Nạp đạn Light Gun</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <kbd className="pixel-kbd">Q</kbd>
@@ -730,7 +730,7 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <kbd className="pixel-kbd">B</kbd>
-                    <span style={{ color: '#ffffff' }}>Mở / Đóng Túi đồ (Inventory)</span>
+                    <span style={{ color: '#ffffff' }}>Mở / Đóng túi đồ</span>
                   </div>
                 </div>
                 <p style={{ fontSize: '16px', color: '#bf953f', marginTop: '12px', fontStyle: 'italic', marginLeft: 0, marginRight: 0 }}>
@@ -745,13 +745,13 @@ export function SettingsOverlay({ onClose }: SettingsOverlayProps) {
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', color: '#ffffff' }}>
                   <p style={{ margin: 0 }}>
-                    1. Thu thập đủ <span style={{ color: '#ffd700', fontWeight: 'bold' }}>5 cuộn tài liệu cổ (📜)</span> rải rác trên bản đồ hoặc rơi từ quái vật/boss.
+                    1. Thu thập đủ <span style={{ color: '#ffd700', fontWeight: 'bold' }}>3 mảnh giấy cổ (📜)</span> rải rác trên bản đồ và từ trùm.
                   </p>
                   <p style={{ margin: 0 }}>
-                    2. Tìm và tiêu diệt <span style={{ color: '#ff6666', fontWeight: 'bold' }}>Hộ Vệ Cổ Đại (Ancient Knight)</span> ở cuối bản đồ.
+                    2. Tìm và tiêu diệt <span style={{ color: '#ff6666', fontWeight: 'bold' }}>Hiệp Sĩ Cổ Đại</span> ở cuối bản đồ.
                   </p>
                   <p style={{ margin: 0 }}>
-                    3. Sau khi diệt boss, <span style={{ color: '#4fc3f7', fontWeight: 'bold' }}>Bàn chế tạo</span> sẽ xuất hiện. Đứng cạnh Bàn chế tạo và nhấn <kbd className="pixel-kbd">G</kbd> để ghép tài liệu và giành CHIẾN THẮNG!
+                    3. Sau khi diệt trùm, <span style={{ color: '#4fc3f7', fontWeight: 'bold' }}>Bàn chế tạo</span> sẽ xuất hiện. Đứng cạnh bàn chế tạo và nhấn <kbd className="pixel-kbd">G</kbd> để ghép tài liệu và giành CHIẾN THẮNG!
                   </p>
                 </div>
               </div>

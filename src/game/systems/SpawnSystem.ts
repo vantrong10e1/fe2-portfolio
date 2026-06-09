@@ -188,10 +188,25 @@ export class SpawnSystem {
 
   /** Return all currently alive enemies across all spawn points */
   getAliveEnemies(): Enemy[] {
+    const seen = new Set<Enemy>();
     const result: Enemy[] = [];
-    for (const tracker of this.trackers.values()) {
-      result.push(...tracker.aliveEnemies);
+
+    for (const enemy of this.enemiesGroup.getChildren() as Enemy[]) {
+      if (!enemy || !enemy.active || enemy.isDead || enemy.currentHp <= 0) continue;
+      if (seen.has(enemy)) continue;
+      seen.add(enemy);
+      result.push(enemy);
     }
+
+    for (const tracker of this.trackers.values()) {
+      for (const enemy of tracker.aliveEnemies) {
+        if (!enemy || !enemy.active || enemy.isDead || enemy.currentHp <= 0) continue;
+        if (seen.has(enemy)) continue;
+        seen.add(enemy);
+        result.push(enemy);
+      }
+    }
+
     return result;
   }
 

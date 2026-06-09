@@ -3,7 +3,7 @@
  *
  * Architecture:
  * - Static ITEM_REGISTRY defines all available items
- * - Player starts with default equipment (Iron Sword + Flintlock Pistol)
+ * - Player starts with default equipment (Iron Sword + Light Gun)
  * - Gold earned from enemy kills
  * - Items stored as InventorySlot[] with quantity tracking
  * - Emits events for UI updates
@@ -31,11 +31,11 @@ export const ITEM_REGISTRY: Record<string, ItemDef> = {
   },
   flintlock_pistol: {
     id: 'flintlock_pistol',
-    name: 'Flintlock Pistol',
+    name: 'Light Gun',
     category: ItemCategory.WEAPON,
     rarity: ItemRarity.COMMON,
     icon: '🔫',
-    description: 'Súng ngắn cổ. Sát thương: 10. Crit 40%. Đạn: 10/10.',
+    description: 'Súng ánh sáng. Sát thương: 10. Chí mạng 40%. Đạn: 10/10.',
     stackable: false,
     maxStack: 1,
   },

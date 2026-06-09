@@ -27,6 +27,7 @@ export class DamageSystem {
     weaponKnockback: number,
     weaponCritChance: number = 0,
     defenderIsBoss: boolean = false,
+    armorPiercePercent: number = 0,
   ): DamageResult {
     // Base damage = attack + weapon damage
     const rawDamage = attackerStats.attack + weaponDamage;
@@ -40,7 +41,8 @@ export class DamageSystem {
     const critMultiplier = isCritical ? attackerStats.criticalDamage : 1.0;
 
     // Defense reduction (minimum 1 damage)
-    const reduced = rawDamage * critMultiplier - defenderStats.defense;
+    const effectiveDefense = defenderStats.defense * (1 - Phaser.Math.Clamp(armorPiercePercent, 0, 1));
+    const reduced = rawDamage * critMultiplier - effectiveDefense;
     let finalDamage = Math.max(1, Math.round(reduced));
 
     // Reduce critical damage by 50% if defender is boss
