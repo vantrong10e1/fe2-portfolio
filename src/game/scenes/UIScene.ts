@@ -793,72 +793,210 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createDocumentViewer(camW: number, camH: number): void {
-    // Backdrop overlay
+    // Backdrop overlay — darker for scroll focus
     this.documentOverlay = this.add.graphics().setDepth(90);
-    this.documentOverlay.fillStyle(0x000000, 0.6);
+    this.documentOverlay.fillStyle(0x000000, 0.7);
     this.documentOverlay.fillRect(0, 0, camW, camH);
     this.documentOverlay.setVisible(false);
 
-    // Modal Panel
-    const panelW = 540;
-    const panelH = 480;
-    const px = (camW - panelW) / 2;
-    const py = (camH - panelH) / 2;
+    // ── Scroll dimensions ────────────────────────────────────────
+    const scrollW = 480;
+    const scrollH = 520;
+    const sx = (camW - scrollW) / 2;
+    const sy = (camH - scrollH) / 2;
+    const rollerH = 18;    // wooden roller height
+    const edgeInset = 12;  // torn parchment edge inset
 
     this.documentViewerContainer = this.add.container(0, 0).setDepth(91).setVisible(false);
 
-    const panel = this.add.graphics();
-    // Dark background
-    panel.fillStyle(0x0c0c14, 0.98);
-    panel.fillRoundedRect(px, py, panelW, panelH, 10);
-    // Double border: gold border + inner border
-    panel.lineStyle(2, 0xf1c40f, 0.65);
-    panel.strokeRoundedRect(px, py, panelW, panelH, 10);
-    panel.lineStyle(1, 0xf1c40f, 0.2);
-    panel.strokeRoundedRect(px + 4, py + 4, panelW - 8, panelH - 8, 8);
+    const scrollGfx = this.add.graphics();
 
-    // Document title
-    this.docTitleText = this.add.text(camW / 2, py + 25, '', {
-      fontSize: '15px', color: '#f1c40f', fontStyle: 'bold',
-      fontFamily: 'Cinzel, serif',
+    // ── Shadow behind scroll ─────────────────────────────────────
+    scrollGfx.fillStyle(0x000000, 0.35);
+    scrollGfx.fillRoundedRect(sx + 6, sy + 6, scrollW, scrollH, 4);
+
+    // ── Main parchment body ──────────────────────────────────────
+    // Base parchment color
+    scrollGfx.fillStyle(0xf5e6c8, 1);
+    scrollGfx.fillRect(sx, sy + rollerH, scrollW, scrollH - rollerH * 2);
+
+    // Aged parchment texture — darker patches
+    scrollGfx.fillStyle(0xe8d5a8, 0.5);
+    scrollGfx.fillRect(sx + 20, sy + 40, 120, 80);
+    scrollGfx.fillRect(sx + scrollW - 140, sy + 120, 100, 60);
+    scrollGfx.fillRect(sx + 60, sy + scrollH - 160, 140, 70);
+    scrollGfx.fillRect(sx + scrollW - 100, sy + scrollH - 120, 80, 50);
+
+    // Lighter highlights
+    scrollGfx.fillStyle(0xfcf3e0, 0.4);
+    scrollGfx.fillRect(sx + 40, sy + 80, 80, 40);
+    scrollGfx.fillRect(sx + scrollW - 120, sy + 60, 60, 30);
+    scrollGfx.fillRect(sx + 100, sy + scrollH - 200, 100, 50);
+
+    // ── Torn/aged edges ──────────────────────────────────────────
+    scrollGfx.fillStyle(0xe0c99a, 1);
+    // Left edge irregularities
+    for (let ey = sy + rollerH; ey < sy + scrollH - rollerH; ey += 12) {
+      const indent = Math.sin(ey * 0.15) * 3 + 2;
+      scrollGfx.fillRect(sx, ey, indent, 12);
+    }
+    // Right edge irregularities
+    for (let ey = sy + rollerH; ey < sy + scrollH - rollerH; ey += 14) {
+      const indent = Math.cos(ey * 0.12) * 3 + 2;
+      scrollGfx.fillRect(sx + scrollW - indent, ey, indent, 14);
+    }
+
+    // ── Parchment inner border (ink line) ────────────────────────
+    scrollGfx.lineStyle(1, 0xc4a265, 0.4);
+    scrollGfx.strokeRect(
+      sx + edgeInset, sy + rollerH + edgeInset,
+      scrollW - edgeInset * 2, scrollH - rollerH * 2 - edgeInset * 2
+    );
+    // Double line inner border
+    scrollGfx.lineStyle(1, 0xc4a265, 0.2);
+    scrollGfx.strokeRect(
+      sx + edgeInset + 3, sy + rollerH + edgeInset + 3,
+      scrollW - edgeInset * 2 - 6, scrollH - rollerH * 2 - edgeInset * 2 - 6
+    );
+
+    // ── Top wooden roller ────────────────────────────────────────
+    // Roller body
+    scrollGfx.fillStyle(0x6d4c2a, 1);
+    scrollGfx.fillRect(sx - 10, sy, scrollW + 20, rollerH);
+    // Wood grain highlight
+    scrollGfx.fillStyle(0x8b6914, 0.4);
+    scrollGfx.fillRect(sx - 10, sy + 3, scrollW + 20, 3);
+    scrollGfx.fillRect(sx - 10, sy + 9, scrollW + 20, 2);
+    // Top highlight
+    scrollGfx.fillStyle(0x9b7b3a, 0.6);
+    scrollGfx.fillRect(sx - 10, sy, scrollW + 20, 2);
+    // Bottom shadow
+    scrollGfx.fillStyle(0x3e2a14, 0.5);
+    scrollGfx.fillRect(sx - 10, sy + rollerH - 2, scrollW + 20, 2);
+    // Roller end caps (decorative knobs)
+    scrollGfx.fillStyle(0x5a3a1a, 1);
+    scrollGfx.fillCircle(sx - 6, sy + rollerH / 2, 8);
+    scrollGfx.fillCircle(sx + scrollW + 6, sy + rollerH / 2, 8);
+    scrollGfx.fillStyle(0xdaa520, 1);
+    scrollGfx.fillCircle(sx - 6, sy + rollerH / 2, 4);
+    scrollGfx.fillCircle(sx + scrollW + 6, sy + rollerH / 2, 4);
+
+    // ── Bottom wooden roller ─────────────────────────────────────
+    const bottomY = sy + scrollH - rollerH;
+    scrollGfx.fillStyle(0x6d4c2a, 1);
+    scrollGfx.fillRect(sx - 10, bottomY, scrollW + 20, rollerH);
+    scrollGfx.fillStyle(0x8b6914, 0.4);
+    scrollGfx.fillRect(sx - 10, bottomY + 3, scrollW + 20, 3);
+    scrollGfx.fillRect(sx - 10, bottomY + 9, scrollW + 20, 2);
+    scrollGfx.fillStyle(0x9b7b3a, 0.6);
+    scrollGfx.fillRect(sx - 10, bottomY, scrollW + 20, 2);
+    scrollGfx.fillStyle(0x3e2a14, 0.5);
+    scrollGfx.fillRect(sx - 10, bottomY + rollerH - 2, scrollW + 20, 2);
+    // End caps
+    scrollGfx.fillStyle(0x5a3a1a, 1);
+    scrollGfx.fillCircle(sx - 6, bottomY + rollerH / 2, 8);
+    scrollGfx.fillCircle(sx + scrollW + 6, bottomY + rollerH / 2, 8);
+    scrollGfx.fillStyle(0xdaa520, 1);
+    scrollGfx.fillCircle(sx - 6, bottomY + rollerH / 2, 4);
+    scrollGfx.fillCircle(sx + scrollW + 6, bottomY + rollerH / 2, 4);
+
+    // ── Wax seal decoration (bottom-right) ───────────────────────
+    const sealX = sx + scrollW - 55;
+    const sealY = bottomY - 32;
+    // Ribbon
+    scrollGfx.fillStyle(0x8b0000, 0.7);
+    scrollGfx.fillRect(sealX - 2, sealY - 16, 4, 18);
+    scrollGfx.fillRect(sealX + 6, sealY - 12, 4, 14);
+    // Seal body
+    scrollGfx.fillStyle(0xb22222, 1);
+    scrollGfx.fillCircle(sealX + 4, sealY, 12);
+    // Seal highlight
+    scrollGfx.fillStyle(0xd44444, 0.6);
+    scrollGfx.fillCircle(sealX + 2, sealY - 3, 5);
+    // Seal emblem (star shape)
+    scrollGfx.fillStyle(0x8b0000, 1);
+    scrollGfx.fillRect(sealX + 1, sealY - 4, 6, 8);
+    scrollGfx.fillRect(sealX - 1, sealY - 1, 10, 3);
+
+    // ── Corner decorations (ink flourishes) ──────────────────────
+    const cornerColor = 0x8b6914;
+    const ci = edgeInset + 4;
+    // Top-left corner
+    scrollGfx.lineStyle(2, cornerColor, 0.5);
+    scrollGfx.lineBetween(sx + ci, sy + rollerH + ci, sx + ci + 25, sy + rollerH + ci);
+    scrollGfx.lineBetween(sx + ci, sy + rollerH + ci, sx + ci, sy + rollerH + ci + 25);
+    // Top-right corner
+    scrollGfx.lineBetween(sx + scrollW - ci, sy + rollerH + ci, sx + scrollW - ci - 25, sy + rollerH + ci);
+    scrollGfx.lineBetween(sx + scrollW - ci, sy + rollerH + ci, sx + scrollW - ci, sy + rollerH + ci + 25);
+    // Bottom-left corner
+    scrollGfx.lineBetween(sx + ci, bottomY - ci, sx + ci + 25, bottomY - ci);
+    scrollGfx.lineBetween(sx + ci, bottomY - ci, sx + ci, bottomY - ci - 25);
+
+    // ── Title text (ink calligraphy style) ───────────────────────
+    this.docTitleText = this.add.text(camW / 2, sy + rollerH + 32, '', {
+      fontSize: '16px',
+      color: '#3e2723',
+      fontStyle: 'bold',
+      fontFamily: 'Cinzel, Georgia, serif',
+      stroke: '#c4a265',
+      strokeThickness: 0.5,
     }).setOrigin(0.5);
 
-    // Document icon
-    this.docIconText = this.add.text(camW / 2, py + 65, '📜', {
-      fontSize: '28px',
+    // ── Decorative divider under title ───────────────────────────
+    const dividerGfx = this.add.graphics();
+    const divY = sy + rollerH + 52;
+    dividerGfx.lineStyle(1, 0x8b6914, 0.5);
+    dividerGfx.lineBetween(sx + 60, divY, sx + scrollW - 60, divY);
+    // Small diamond at center
+    dividerGfx.fillStyle(0x8b6914, 0.6);
+    dividerGfx.fillRect(camW / 2 - 3, divY - 3, 6, 6);
+
+    // ── Document icon ────────────────────────────────────────────
+    this.docIconText = this.add.text(camW / 2, sy + rollerH + 75, '📜', {
+      fontSize: '24px',
     }).setOrigin(0.5);
 
-    // Document content text (wrapped)
-    this.docContentText = this.add.text(camW / 2, py + 155, '', {
-      fontSize: '13px', color: '#e0e0e0',
-      fontFamily: 'Inter, sans-serif',
-      wordWrap: { width: panelW - 80 },
-      align: 'center',
-      lineSpacing: 5,
-    }).setOrigin(0.5);
+    // ── Document content text (ink on parchment) ─────────────────
+    this.docContentText = this.add.text(camW / 2, sy + rollerH + 125, '', {
+      fontSize: '13px',
+      color: '#3e2723',          // dark brown ink
+      fontFamily: 'Georgia, "Times New Roman", serif',
+      wordWrap: { width: scrollW - 70 },
+      align: 'left',
+      lineSpacing: 7,
+    }).setOrigin(0.5, 0);
 
-    // Create a scroll mask shape using a rectangle
-    this.maskRect = this.add.rectangle(camW / 2, py + 75 + (panelH - 110) / 2, panelW - 40, panelH - 110, 0xffffff);
-    this.children.remove(this.maskRect); // Prevent it from rendering directly in the scene graph
+    // Content mask
+    this.maskRect = this.add.rectangle(
+      camW / 2,
+      sy + rollerH + edgeInset + (scrollH - rollerH * 2 - edgeInset * 2) / 2,
+      scrollW - 40,
+      scrollH - rollerH * 2 - edgeInset * 2,
+      0xffffff
+    );
+    this.children.remove(this.maskRect);
     this.docContentText.enableFilters();
     this.docContentText.filters!.external.addMask(this.maskRect);
 
-    // Close Button
-    const btnClose = this.add.text(camW / 2, py + panelH - 25, '[ NHẤN G HOẶC CLICK ĐỂ ĐÓNG ]', {
-      fontSize: '11px', color: '#888888', fontStyle: 'bold',
-      fontFamily: 'Inter, sans-serif',
+    // ── Close instruction (ink style) ────────────────────────────
+    const btnClose = this.add.text(camW / 2, bottomY - 18, '〔 NHẤN G HOẶC CLICK ĐỂ ĐÓNG 〕', {
+      fontSize: '10px',
+      color: '#8b6914',
+      fontStyle: 'italic',
+      fontFamily: 'Georgia, serif',
     }).setOrigin(0.5);
 
     btnClose.setInteractive({ useHandCursor: true });
-    btnClose.on('pointerover', () => btnClose.setColor('#f1c40f'));
-    btnClose.on('pointerout', () => btnClose.setColor('#888888'));
+    btnClose.on('pointerover', () => btnClose.setColor('#3e2723'));
+    btnClose.on('pointerout', () => btnClose.setColor('#8b6914'));
     btnClose.on('pointerdown', () => {
       AudioManager.getInstance().playSFX('ui-click');
       this.closeDocumentViewer();
     });
 
     this.documentViewerContainer.add([
-      panel, this.docTitleText, this.docIconText, this.docContentText, btnClose,
+      scrollGfx, dividerGfx,
+      this.docTitleText, this.docIconText, this.docContentText, btnClose,
     ]);
 
     // Listen to keyboard keys G and ESC to close
@@ -909,38 +1047,47 @@ export class UIScene extends Phaser.Scene {
     this.docContentText.setText(def.content);
     this.docIconText.setText(def.icon || '📜');
 
-    const py = (this.cameras.main.height - 480) / 2;
-    const px = (this.cameras.main.width - 540) / 2;
+    const scrollW = 480;
+    const scrollH = 520;
+    const rollerH = 18;
+    const edgeInset = 12;
+    const sy = (this.cameras.main.height - scrollH) / 2;
+    const sx = (this.cameras.main.width - scrollW) / 2;
+    const camCX = this.cameras.main.width / 2;
 
     if (def.id === 'merged_doc') {
       this.docIconText.setVisible(false);
       this.docContentText.setOrigin(0.5, 0);
-      this.docContentText.setPosition(this.cameras.main.width / 2, py + 75);
+      this.docContentText.setPosition(camCX, sy + rollerH + 60);
       this.docContentText.setAlign('left');
       this.docContentText.setFontSize('12px');
-      this.docContentText.setLineSpacing(6);
-      this.docContentText.setWordWrapWidth(400);
-      this.docContentInitialY = py + 75;
-      this.docViewportH = 360;
+      this.docContentText.setColor('#3e2723');
+      this.docContentText.setLineSpacing(7);
+      this.docContentText.setWordWrapWidth(scrollW - 80);
+      this.docContentInitialY = sy + rollerH + 60;
+      this.docViewportH = scrollH - rollerH * 2 - edgeInset * 2 - 30;
     } else {
       this.docIconText.setVisible(true);
-      this.docIconText.setPosition(this.cameras.main.width / 2, py + 65);
+      this.docIconText.setPosition(camCX, sy + rollerH + 72);
       this.docContentText.setOrigin(0.5, 0);
-      this.docContentText.setPosition(this.cameras.main.width / 2, py + 130);
+      this.docContentText.setPosition(camCX, sy + rollerH + 110);
       this.docContentText.setAlign('left');
-      this.docContentText.setFontSize('14px');
-      this.docContentText.setLineSpacing(6);
-      this.docContentText.setWordWrapWidth(440);
-      this.docContentInitialY = py + 130;
-      this.docViewportH = 305;
+      this.docContentText.setFontSize('13px');
+      this.docContentText.setColor('#3e2723');
+      this.docContentText.setLineSpacing(7);
+      this.docContentText.setWordWrapWidth(scrollW - 80);
+      this.docContentInitialY = sy + rollerH + 110;
+      this.docViewportH = scrollH - rollerH * 2 - edgeInset * 2 - 80;
     }
 
-    // Dynamically update mask shape bounds to fit the current coordinates exactly!
+    // Dynamically update mask shape bounds
     if (this.maskRect) {
-      const maskY = def.id === 'merged_doc' ? py + 75 : py + 130;
-      const maskH = this.docViewportH;
-      this.maskRect.setPosition(this.cameras.main.width / 2, maskY + maskH / 2);
-      this.maskRect.setSize(540 - 40, maskH);
+      const maskY = def.id === 'merged_doc'
+        ? sy + rollerH + edgeInset
+        : sy + rollerH + edgeInset;
+      const maskH = scrollH - rollerH * 2 - edgeInset * 2;
+      this.maskRect.setPosition(camCX, maskY + maskH / 2);
+      this.maskRect.setSize(scrollW - 40, maskH);
     }
 
     // Reset position when opened
